@@ -38,10 +38,13 @@ namespace margelo::nitro::nitrotts {
       jni::local_ref<jni::JString> chapterName = this->getFieldValue(fieldChapterName);
       static const auto fieldCoverUri = clazz->getField<jni::JString>("coverUri");
       jni::local_ref<jni::JString> coverUri = this->getFieldValue(fieldCoverUri);
+      static const auto fieldChapterId = clazz->getField<jni::JString>("chapterId");
+      jni::local_ref<jni::JString> chapterId = this->getFieldValue(fieldChapterId);
       return TtsMetadata(
         novelName->toStdString(),
         chapterName->toStdString(),
-        coverUri != nullptr ? std::make_optional(coverUri->toStdString()) : std::nullopt
+        coverUri != nullptr ? std::make_optional(coverUri->toStdString()) : std::nullopt,
+        chapterId != nullptr ? std::make_optional(chapterId->toStdString()) : std::nullopt
       );
     }
 
@@ -51,14 +54,15 @@ namespace margelo::nitro::nitrotts {
      */
     [[maybe_unused]]
     static jni::local_ref<JTtsMetadata::javaobject> fromCpp(const TtsMetadata& value) {
-      using JSignature = JTtsMetadata(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
+      using JSignature = JTtsMetadata(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         jni::make_jstring(value.novelName),
         jni::make_jstring(value.chapterName),
-        value.coverUri.has_value() ? jni::make_jstring(value.coverUri.value()) : nullptr
+        value.coverUri.has_value() ? jni::make_jstring(value.coverUri.value()) : nullptr,
+        value.chapterId.has_value() ? jni::make_jstring(value.chapterId.value()) : nullptr
       );
     }
   };

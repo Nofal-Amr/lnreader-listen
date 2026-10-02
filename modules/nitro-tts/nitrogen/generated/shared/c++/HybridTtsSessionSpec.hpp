@@ -19,6 +19,8 @@ namespace margelo::nitro::nitrotts { struct TtsParagraph; }
 namespace margelo::nitro::nitrotts { struct TtsMetadata; }
 // Forward declaration of `TtsSettings` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsSettings; }
+// Forward declaration of `TtsChapter` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsChapter; }
 // Forward declaration of `ListenerSubscription` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct ListenerSubscription; }
 // Forward declaration of `TtsPlaybackState` to properly resolve imports.
@@ -31,11 +33,12 @@ namespace margelo::nitro::nitrotts { struct TtsProgress; }
 #include <vector>
 #include "TtsMetadata.hpp"
 #include "TtsSettings.hpp"
+#include "TtsChapter.hpp"
 #include "ListenerSubscription.hpp"
-#include "TtsPlaybackState.hpp"
-#include <functional>
-#include "TtsProgress.hpp"
 #include <string>
+#include <functional>
+#include "TtsPlaybackState.hpp"
+#include "TtsProgress.hpp"
 
 namespace margelo::nitro::nitrotts {
 
@@ -77,6 +80,9 @@ namespace margelo::nitro::nitrotts {
       virtual std::shared_ptr<Promise<void>> replayCurrent() = 0;
       virtual std::shared_ptr<Promise<void>> seekTo(double index) = 0;
       virtual std::shared_ptr<Promise<void>> updateSettings(const TtsSettings& settings) = 0;
+      virtual std::shared_ptr<Promise<void>> appendChapter(const TtsChapter& chapter) = 0;
+      virtual std::shared_ptr<Promise<void>> clearUpcoming() = 0;
+      virtual ListenerSubscription addOnChapterChangedListener(const std::function<void(const std::string& /* chapterId */)>& listener) = 0;
       virtual ListenerSubscription addOnStateChangedListener(const std::function<void(TtsPlaybackState /* state */)>& listener) = 0;
       virtual ListenerSubscription addOnProgressChangedListener(const std::function<void(const TtsProgress& /* progress */)>& listener) = 0;
       virtual ListenerSubscription addOnErrorListener(const std::function<void(const std::string& /* message */)>& listener) = 0;

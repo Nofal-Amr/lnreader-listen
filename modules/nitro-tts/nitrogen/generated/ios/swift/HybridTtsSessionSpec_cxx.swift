@@ -296,6 +296,61 @@ open class HybridTtsSessionSpec_cxx {
   }
   
   @inline(__always)
+  public final func appendChapter(chapter: TtsChapter) -> bridge.Result_std__shared_ptr_Promise_void___ {
+    do {
+      let __result = try self.__implementation.appendChapter(chapter: chapter)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_void__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_void__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_void__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve() })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_void___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_void___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func clearUpcoming() -> bridge.Result_std__shared_ptr_Promise_void___ {
+    do {
+      let __result = try self.__implementation.clearUpcoming()
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_void__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_void__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_void__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve() })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_void___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_void___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func addOnChapterChangedListener(listener: bridge.Func_void_std__string) -> bridge.Result_ListenerSubscription_ {
+    do {
+      let __result = try self.__implementation.addOnChapterChangedListener(listener: { () -> (String) -> Void in
+        let __wrappedFunction = bridge.wrap_Func_void_std__string(listener)
+        return { (__chapterId: String) -> Void in
+          __wrappedFunction.call(std.string(__chapterId))
+        }
+      }())
+      let __resultCpp = __result
+      return bridge.create_Result_ListenerSubscription_(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_ListenerSubscription_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
   public final func addOnStateChangedListener(listener: bridge.Func_void_TtsPlaybackState) -> bridge.Result_ListenerSubscription_ {
     do {
       let __result = try self.__implementation.addOnStateChangedListener(listener: { () -> (TtsPlaybackState) -> Void in

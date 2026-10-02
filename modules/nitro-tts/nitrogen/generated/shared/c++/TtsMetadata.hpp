@@ -43,10 +43,11 @@ namespace margelo::nitro::nitrotts {
     std::string novelName     SWIFT_PRIVATE;
     std::string chapterName     SWIFT_PRIVATE;
     std::optional<std::string> coverUri     SWIFT_PRIVATE;
+    std::optional<std::string> chapterId     SWIFT_PRIVATE;
 
   public:
     TtsMetadata() = default;
-    explicit TtsMetadata(std::string novelName, std::string chapterName, std::optional<std::string> coverUri): novelName(novelName), chapterName(chapterName), coverUri(coverUri) {}
+    explicit TtsMetadata(std::string novelName, std::string chapterName, std::optional<std::string> coverUri, std::optional<std::string> chapterId): novelName(novelName), chapterName(chapterName), coverUri(coverUri), chapterId(chapterId) {}
 
   public:
     friend bool operator==(const TtsMetadata& lhs, const TtsMetadata& rhs) = default;
@@ -64,7 +65,8 @@ namespace margelo::nitro {
       return margelo::nitro::nitrotts::TtsMetadata(
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "novelName"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "chapterName"))),
-        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "coverUri")))
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "coverUri"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "chapterId")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrotts::TtsMetadata& arg) {
@@ -72,6 +74,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "novelName"), JSIConverter<std::string>::toJSI(runtime, arg.novelName));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "chapterName"), JSIConverter<std::string>::toJSI(runtime, arg.chapterName));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "coverUri"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.coverUri));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "chapterId"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.chapterId));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -85,6 +88,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "novelName")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "chapterName")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "coverUri")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "chapterId")))) return false;
       return true;
     }
   };

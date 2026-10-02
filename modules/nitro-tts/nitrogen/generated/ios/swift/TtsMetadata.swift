@@ -18,9 +18,15 @@ public extension TtsMetadata {
   /**
    * Create a new instance of `TtsMetadata`.
    */
-  init(novelName: String, chapterName: String, coverUri: String?) {
+  init(novelName: String, chapterName: String, coverUri: String?, chapterId: String?) {
     self.init(std.string(novelName), std.string(chapterName), { () -> bridge.std__optional_std__string_ in
       if let __unwrappedValue = coverUri {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = chapterId {
         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
       } else {
         return .init()
@@ -43,6 +49,18 @@ public extension TtsMetadata {
     return { () -> String? in
       if bridge.has_value_std__optional_std__string_(self.__coverUri) {
         let __unwrapped = bridge.get_std__optional_std__string_(self.__coverUri)
+        return String(__unwrapped)
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var chapterId: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__chapterId) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__chapterId)
         return String(__unwrapped)
       } else {
         return nil

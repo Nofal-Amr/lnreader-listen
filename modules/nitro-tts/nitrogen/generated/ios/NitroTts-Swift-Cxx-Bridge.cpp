@@ -87,6 +87,14 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const std::string& /* chapterId */)>
+  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroTts::Func_void_std__string::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::string& chapterId) mutable -> void {
+      swiftClosure.call(chapterId);
+    };
+  }
+  
   // pragma MARK: std::function<void(TtsPlaybackState /* state */)>
   Func_void_TtsPlaybackState create_Func_void_TtsPlaybackState(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroTts::Func_void_TtsPlaybackState::fromUnsafe(swiftClosureWrapper);
@@ -100,14 +108,6 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     auto swiftClosure = NitroTts::Func_void_TtsProgress::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](const TtsProgress& progress) mutable -> void {
       swiftClosure.call(progress);
-    };
-  }
-  
-  // pragma MARK: std::function<void(const std::string& /* message */)>
-  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroTts::Func_void_std__string::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](const std::string& message) mutable -> void {
-      swiftClosure.call(message);
     };
   }
 

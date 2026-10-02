@@ -15,6 +15,8 @@ namespace margelo::nitro::nitrotts { struct TtsParagraph; }
 namespace margelo::nitro::nitrotts { struct TtsMetadata; }
 // Forward declaration of `TtsSettings` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsSettings; }
+// Forward declaration of `TtsChapter` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsChapter; }
 // Forward declaration of `TtsPlaybackState` to properly resolve imports.
 namespace margelo::nitro::nitrotts { enum class TtsPlaybackState; }
 // Forward declaration of `TtsProgress` to properly resolve imports.
@@ -37,13 +39,15 @@ namespace margelo::nitro::nitrotts { struct TtsProgress; }
 #include <optional>
 #include "TtsSettings.hpp"
 #include "JTtsSettings.hpp"
+#include "TtsChapter.hpp"
+#include "JTtsChapter.hpp"
+#include "JFunc_void_std__string.hpp"
 #include "TtsPlaybackState.hpp"
 #include "JFunc_void_TtsPlaybackState.hpp"
 #include "JTtsPlaybackState.hpp"
 #include "TtsProgress.hpp"
 #include "JFunc_void_TtsProgress.hpp"
 #include "JTtsProgress.hpp"
-#include "JFunc_void_std__string.hpp"
 
 namespace margelo::nitro::nitrotts {
 
@@ -221,6 +225,41 @@ namespace margelo::nitro::nitrotts {
       });
       return __promise;
     }();
+  }
+  std::shared_ptr<Promise<void>> JHybridTtsSessionSpec::appendChapter(const TtsChapter& chapter) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<JTtsChapter> /* chapter */)>("appendChapter");
+    auto __result = method(_javaPart, JTtsChapter::fromCpp(chapter));
+    return [&]() {
+      auto __promise = Promise<void>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {
+        __promise->resolve();
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<void>> JHybridTtsSessionSpec::clearUpcoming() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>()>("clearUpcoming");
+    auto __result = method(_javaPart);
+    return [&]() {
+      auto __promise = Promise<void>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {
+        __promise->resolve();
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  ListenerSubscription JHybridTtsSessionSpec::addOnChapterChangedListener(const std::function<void(const std::string& /* chapterId */)>& listener) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JListenerSubscription>(jni::alias_ref<JFunc_void_std__string::javaobject> /* listener */)>("addOnChapterChangedListener_cxx");
+    auto __result = method(_javaPart, JFunc_void_std__string_cxx::fromCpp(listener));
+    return __result->toCpp();
   }
   ListenerSubscription JHybridTtsSessionSpec::addOnStateChangedListener(const std::function<void(TtsPlaybackState /* state */)>& listener) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JListenerSubscription>(jni::alias_ref<JFunc_void_TtsPlaybackState::javaobject> /* listener */)>("addOnStateChangedListener_cxx");

@@ -55,6 +55,21 @@ final class HybridTtsSession: HybridTtsSessionSpec {
     }
   }
 
+  // Chapter queueing is Android-only; iOS is not shipped by this fork.
+  func appendChapter(chapter: TtsChapter) throws -> Promise<Void> {
+    return Promise.resolved()
+  }
+
+  func clearUpcoming() throws -> Promise<Void> {
+    return Promise.resolved()
+  }
+
+  func addOnChapterChangedListener(
+    listener: @escaping (_ chapterId: String) -> Void
+  ) throws -> ListenerSubscription {
+    return ListenerSubscription(remove: {})
+  }
+
   func addOnStateChangedListener(
     listener: @escaping (TtsPlaybackState) -> Void
   ) throws -> ListenerSubscription {

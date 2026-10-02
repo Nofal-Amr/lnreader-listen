@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
@@ -20,7 +21,19 @@ internal object TtsPlaybackStore {
     private val progressListeners = TtsListenerRegistry<TtsProgress>()
     private val errorListeners = TtsListenerRegistry<String>()
     private val snapshotListeners = TtsListenerRegistry<TtsPlaybackSnapshot>()
+    private val chapterListeners = TtsListenerRegistry<String>()
     private val pendingInitialization = mutableListOf<(Result<Unit>) -> Unit>()
+
+    // Chapters JS queued ahead of time. Advancing into them happens here, not in
+    // the reader WebView, because Android freezes the WebView with the screen off.
+    private val upcoming = ArrayDeque<TtsChapter>()
+    private var waitingForChapter = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    private val giveUpWaiting = Runnable {
+        if (waitingForChapter) finishWaiting(complete = true)
+    }
+    private const val CHAPTER_GAP_MS = 600L
+    private const val WAIT_FOR_CHAPTER_MS = 30_000L
 
     private var applicationContext: Context? = null
     private var engine: TextToSpeech? = null
@@ -157,6 +170,8 @@ internal object TtsPlaybackStore {
 
         generation += 1
         engine?.stop()
+        upcoming.clear()
+        finishWaiting(complete = false)
         paragraphs = nextParagraphs.filter { it.text.isNotBlank() }
         require(paragraphs.isNotEmpty()) { "The TTS queue contains no readable paragraphs." }
         currentIndex = initialIndex.coerceIn(paragraphs.indices)
@@ -185,12 +200,20 @@ internal object TtsPlaybackStore {
     fun pause() {
         resumeOnFocusGain = false
         abandonAudioFocus()
+        if (waitingForChapter) {
+            finishWaiting(complete = false)
+            state = TtsPlaybackState.PAUSED
+            emitState()
+            return
+        }
         pauseEngine()
     }
 
     fun stop() {
         generation += 1
         engine?.stop()
+        upcoming.clear()
+        finishWaiting(complete = false)
         paragraphs = emptyList()
         currentIndex = 0
         metadata = null
@@ -295,7 +318,7 @@ internal object TtsPlaybackStore {
     fun skipNext() {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before seeking." }
         if (currentIndex >= paragraphs.lastIndex) {
-            completeQueue()
+            continueToNextChapter()
             return
         }
         currentIndex += 1
@@ -408,11 +431,80 @@ internal object TtsPlaybackStore {
             return
         }
         if (currentIndex >= paragraphs.lastIndex) {
-            completeQueue()
+            continueToNextChapter()
             return
         }
         currentIndex += 1
         speakCurrent()
+    }
+
+    fun appendChapter(chapter: TtsChapter) {
+        val readable = chapter.paragraphs.filter { it.text.isNotBlank() }
+        if (readable.isEmpty()) return
+        upcoming.addLast(TtsChapter(chapter.chapterId, readable.toTypedArray(), chapter.metadata))
+        if (waitingForChapter) {
+            finishWaiting(complete = false)
+            startNextChapter()
+        }
+    }
+
+    fun clearUpcoming() {
+        upcoming.clear()
+    }
+
+    fun addChapterListener(listener: (String) -> Unit): () -> Unit =
+        chapterListeners.add(listener)
+
+    private fun continueToNextChapter() {
+        if (upcoming.isNotEmpty()) startNextChapter() else waitForChapter()
+    }
+
+    private fun startNextChapter() {
+        val next = upcoming.removeFirst()
+        paragraphs = next.paragraphs.toList()
+        currentIndex = 0
+        metadata = next.metadata
+        chapterListeners.emit(next.chapterId)
+        emitProgress()
+        generation += 1
+        val gapGeneration = generation
+        // A short silence marks the chapter boundary; a pause/seek during it
+        // bumps `generation` and cancels the delayed start.
+        ownerHandler.postDelayed({
+            if (generation == gapGeneration) speakCurrent()
+        }, CHAPTER_GAP_MS)
+    }
+
+    private fun waitForChapter() {
+        waitingForChapter = true
+        state = TtsPlaybackState.LOADING
+        emitState()
+        acquireWakeLock()
+        ownerHandler.postDelayed(giveUpWaiting, WAIT_FOR_CHAPTER_MS)
+    }
+
+    private fun finishWaiting(complete: Boolean) {
+        if (!waitingForChapter) return
+        waitingForChapter = false
+        ownerHandler.removeCallbacks(giveUpWaiting)
+        releaseWakeLock()
+        if (complete) completeQueue()
+    }
+
+    // Keeps the CPU awake while JS fetches the next chapter with the screen off.
+    private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
+        val powerManager =
+            applicationContext?.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "lnreader:tts-next").apply {
+            setReferenceCounted(false)
+            acquire(WAIT_FOR_CHAPTER_MS + 5_000L)
+        }
+    }
+
+    private fun releaseWakeLock() {
+        wakeLock?.takeIf { it.isHeld }?.release()
+        wakeLock = null
     }
 
     private fun completeQueue() {

@@ -18,6 +18,8 @@ namespace margelo::nitro::nitrotts { struct TtsParagraph; }
 namespace margelo::nitro::nitrotts { struct TtsMetadata; }
 // Forward declaration of `TtsSettings` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsSettings; }
+// Forward declaration of `TtsChapter` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsChapter; }
 // Forward declaration of `ListenerSubscription` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct ListenerSubscription; }
 // Forward declaration of `TtsPlaybackState` to properly resolve imports.
@@ -32,6 +34,7 @@ namespace margelo::nitro::nitrotts { struct TtsProgress; }
 #include "TtsMetadata.hpp"
 #include <optional>
 #include "TtsSettings.hpp"
+#include "TtsChapter.hpp"
 #include "ListenerSubscription.hpp"
 #include <functional>
 #include "TtsPlaybackState.hpp"
@@ -153,6 +156,30 @@ namespace margelo::nitro::nitrotts {
     }
     inline std::shared_ptr<Promise<void>> updateSettings(const TtsSettings& settings) override {
       auto __result = _swiftPart.updateSettings(std::forward<decltype(settings)>(settings));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<void>> appendChapter(const TtsChapter& chapter) override {
+      auto __result = _swiftPart.appendChapter(std::forward<decltype(chapter)>(chapter));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<void>> clearUpcoming() override {
+      auto __result = _swiftPart.clearUpcoming();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline ListenerSubscription addOnChapterChangedListener(const std::function<void(const std::string& /* chapterId */)>& listener) override {
+      auto __result = _swiftPart.addOnChapterChangedListener(listener);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

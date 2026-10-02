@@ -65,6 +65,23 @@ abstract class HybridTtsSessionSpec: HybridObject() {
   @Keep
   abstract fun updateSettings(settings: TtsSettings): Promise<Unit>
   
+  @DoNotStrip
+  @Keep
+  abstract fun appendChapter(chapter: TtsChapter): Promise<Unit>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun clearUpcoming(): Promise<Unit>
+  
+  abstract fun addOnChapterChangedListener(listener: (chapterId: String) -> Unit): ListenerSubscription
+  
+  @DoNotStrip
+  @Keep
+  private fun addOnChapterChangedListener_cxx(listener: Func_void_std__string): ListenerSubscription {
+    val __result = addOnChapterChangedListener(listener)
+    return __result
+  }
+  
   abstract fun addOnStateChangedListener(listener: (state: TtsPlaybackState) -> Unit): ListenerSubscription
   
   @DoNotStrip

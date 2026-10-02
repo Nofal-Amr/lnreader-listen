@@ -47,6 +47,18 @@ final class HybridTtsSession : HybridTtsSessionSpec() {
     override fun updateSettings(settings: TtsSettings): Promise<Unit> =
         MainThreadPromise.run { TtsPlaybackStore.updateSettings(settings) }
 
+    override fun appendChapter(chapter: TtsChapter): Promise<Unit> =
+        MainThreadPromise.run { TtsPlaybackStore.appendChapter(chapter) }
+
+    override fun clearUpcoming(): Promise<Unit> =
+        MainThreadPromise.run(TtsPlaybackStore::clearUpcoming)
+
+    override fun addOnChapterChangedListener(
+        listener: (chapterId: String) -> Unit,
+    ): ListenerSubscription {
+        return ListenerSubscription(TtsPlaybackStore.addChapterListener(listener))
+    }
+
     override fun addOnStateChangedListener(
         listener: (state: TtsPlaybackState) -> Unit,
     ): ListenerSubscription {

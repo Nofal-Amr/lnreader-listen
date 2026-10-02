@@ -10,4 +10,6 @@ export interface TtsMetadata {
   chapterName: string;
   /** Optional local or remote cover URI. */
   coverUri?: string;
+  /** Database id of the chapter being read. */
+  chapterId?: string;
 }

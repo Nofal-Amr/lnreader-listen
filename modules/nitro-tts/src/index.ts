@@ -5,6 +5,7 @@ export const Tts = NitroModules.createHybridObject<TtsFactory>('TtsFactory');
 
 export type { TtsFactory } from './specs/TtsFactory.nitro';
 export type { TtsSession } from './specs/TtsSession.nitro';
+export type { TtsChapter } from './types/TtsChapter';
 export type { ListenerSubscription } from './types/ListenerSubscription';
 export type { TtsEngine } from './types/TtsEngine';
 export type { TtsMetadata } from './types/TtsMetadata';

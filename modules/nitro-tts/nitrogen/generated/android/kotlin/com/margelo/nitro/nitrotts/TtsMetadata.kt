@@ -26,7 +26,10 @@ data class TtsMetadata(
   val chapterName: String,
   @DoNotStrip
   @Keep
-  val coverUri: String?
+  val coverUri: String?,
+  @DoNotStrip
+  @Keep
+  val chapterId: String?
 ) {
   /* primary constructor */
 
@@ -36,13 +39,15 @@ data class TtsMetadata(
     return Objects.deepEquals(this.novelName, other.novelName)
       && Objects.deepEquals(this.chapterName, other.chapterName)
       && Objects.deepEquals(this.coverUri, other.coverUri)
+      && Objects.deepEquals(this.chapterId, other.chapterId)
   }
 
   override fun hashCode(): Int {
     return arrayOf<Any?>(
       novelName,
       chapterName,
-      coverUri
+      coverUri,
+      chapterId
     ).contentDeepHashCode()
   }
 
@@ -54,8 +59,8 @@ data class TtsMetadata(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(novelName: String, chapterName: String, coverUri: String?): TtsMetadata {
-      return TtsMetadata(novelName, chapterName, coverUri)
+    private fun fromCpp(novelName: String, chapterName: String, coverUri: String?, chapterId: String?): TtsMetadata {
+      return TtsMetadata(novelName, chapterName, coverUri, chapterId)
     }
   }
 }

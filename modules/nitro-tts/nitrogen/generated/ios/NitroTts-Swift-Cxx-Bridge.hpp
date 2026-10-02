@@ -313,6 +313,28 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     return vector;
   }
   
+  // pragma MARK: std::function<void(const std::string& /* chapterId */)>
+  /**
+   * Specialized version of `std::function<void(const std::string&)>`.
+   */
+  using Func_void_std__string = std::function<void(const std::string& /* chapterId */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::string& / * chapterId * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__string_Wrapper final {
+  public:
+    explicit Func_void_std__string_Wrapper(std::function<void(const std::string& /* chapterId */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* chapterId */)>>(std::move(func))) {}
+    inline void call(std::string chapterId) const noexcept {
+      _function->operator()(chapterId);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::string& /* chapterId */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__string_Wrapper wrap_Func_void_std__string(Func_void_std__string value) noexcept {
+    return Func_void_std__string_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::function<void(TtsPlaybackState /* state */)>
   /**
    * Specialized version of `std::function<void(TtsPlaybackState)>`.
@@ -355,28 +377,6 @@ namespace margelo::nitro::nitrotts::bridge::swift {
   Func_void_TtsProgress create_Func_void_TtsProgress(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_TtsProgress_Wrapper wrap_Func_void_TtsProgress(Func_void_TtsProgress value) noexcept {
     return Func_void_TtsProgress_Wrapper(std::move(value));
-  }
-  
-  // pragma MARK: std::function<void(const std::string& /* message */)>
-  /**
-   * Specialized version of `std::function<void(const std::string&)>`.
-   */
-  using Func_void_std__string = std::function<void(const std::string& /* message */)>;
-  /**
-   * Wrapper class for a `std::function<void(const std::string& / * message * /)>`, this can be used from Swift.
-   */
-  class Func_void_std__string_Wrapper final {
-  public:
-    explicit Func_void_std__string_Wrapper(std::function<void(const std::string& /* message */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* message */)>>(std::move(func))) {}
-    inline void call(std::string message) const noexcept {
-      _function->operator()(message);
-    }
-  private:
-    std::unique_ptr<std::function<void(const std::string& /* message */)>> _function;
-  } SWIFT_NONCOPYABLE;
-  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_std__string_Wrapper wrap_Func_void_std__string(Func_void_std__string value) noexcept {
-    return Func_void_std__string_Wrapper(std::move(value));
   }
   
   // pragma MARK: Result<std::shared_ptr<Promise<void>>>

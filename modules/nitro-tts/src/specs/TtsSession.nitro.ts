@@ -1,4 +1,5 @@
 import type { HybridObject } from 'react-native-nitro-modules';
+import type { TtsChapter } from '../types/TtsChapter';
 import type { ListenerSubscription } from '../types/ListenerSubscription';
 import type { TtsMetadata } from '../types/TtsMetadata';
 import type { TtsParagraph } from '../types/TtsParagraph';
@@ -46,6 +47,20 @@ export interface TtsSession
 
   /** Applies voice, rate, and pitch preferences. */
   updateSettings(settings: TtsSettings): Promise<void>;
+
+  /**
+   * Queues a chapter to play automatically after the current queue ends, so
+   * playback continues without the reader WebView (screen off, app hidden).
+   */
+  appendChapter(chapter: TtsChapter): Promise<void>;
+
+  /** Drops chapters queued with {@linkcode TtsSession.appendChapter}. */
+  clearUpcoming(): Promise<void>;
+
+  /** Observes playback advancing into a queued chapter; receives its id. */
+  addOnChapterChangedListener(
+    listener: (chapterId: string) => void,
+  ): ListenerSubscription;
 
   /**
    * Observes playback-state changes.
