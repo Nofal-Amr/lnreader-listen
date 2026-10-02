@@ -13,6 +13,7 @@ import { getString } from '@i18n/translations';
 import { Chip } from 'react-native-paper';
 import ReaderSheetPreferenceItem from './ReaderSheetPreferenceItem';
 import ListenSettingsSection from './ListenSettingsSection';
+import SpeechRulesSection from './SpeechRulesSection';
 
 interface VoicePickerModalProps {
   visible: boolean;
@@ -439,6 +440,12 @@ const TTSTab: React.FC = () => {
               />
 
               <ListenSettingsSection
+                tts={tts}
+                setTts={nextTts => setChapterReaderSettings({ tts: nextTts })}
+                theme={theme}
+              />
+
+              <SpeechRulesSection
                 tts={tts}
                 setTts={nextTts => setChapterReaderSettings({ tts: nextTts })}
                 theme={theme}

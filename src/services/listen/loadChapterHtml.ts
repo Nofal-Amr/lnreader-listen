@@ -3,6 +3,9 @@ import { fetchChapter } from '@services/plugin/fetch';
 import { sanitizeChapterText } from '@screens/reader/utils/sanitizeChapterText';
 import { NOVEL_STORAGE } from '@utils/Storages';
 
+import { cleanChapterHtml } from './cleaner/cleanChapterHtml';
+import { getCleanerOptions } from './textPipeline';
+
 /**
  * Reads the chapter from local storage, falling back to the plugin when it
  * is not downloaded. A single `readFile` doubles as the existence check to
@@ -24,9 +27,12 @@ export const loadChapterHtml = async (
   novel: { pluginId: string; name: string },
   chapter: { id: number; novelId: number; path: string; name: string },
 ): Promise<string> =>
-  sanitizeChapterText(
-    novel.pluginId,
-    novel.name,
-    chapter.name,
-    await loadRawChapterHtml(novel.pluginId, chapter),
+  cleanChapterHtml(
+    sanitizeChapterText(
+      novel.pluginId,
+      novel.name,
+      chapter.name,
+      await loadRawChapterHtml(novel.pluginId, chapter),
+    ),
+    getCleanerOptions(),
   );

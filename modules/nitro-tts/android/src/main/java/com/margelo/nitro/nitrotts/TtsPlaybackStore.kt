@@ -191,8 +191,12 @@ internal object TtsPlaybackStore {
         engine?.stop()
         upcoming.clear()
         finishWaiting(complete = false)
-        paragraphs = nextParagraphs.filter { it.text.isNotBlank() }
-        require(paragraphs.isNotEmpty()) { "The TTS queue contains no readable paragraphs." }
+        // Blank paragraphs (emptied by speech rules) keep their slot so indices
+        // match the reader highlight; speakCurrent() skips them.
+        require(nextParagraphs.any { it.text.isNotBlank() }) {
+            "The TTS queue contains no readable paragraphs."
+        }
+        paragraphs = nextParagraphs.toList()
         currentIndex = initialIndex.coerceIn(paragraphs.indices)
         charStart = 0
         spokenPos = 0
@@ -562,9 +566,8 @@ internal object TtsPlaybackStore {
     }
 
     fun appendChapter(chapter: TtsChapter) {
-        val readable = chapter.paragraphs.filter { it.text.isNotBlank() }
-        if (readable.isEmpty()) return
-        upcoming.addLast(TtsChapter(chapter.chapterId, readable.toTypedArray(), chapter.metadata))
+        if (chapter.paragraphs.none { it.text.isNotBlank() }) return
+        upcoming.addLast(chapter)
         if (waitingForChapter) {
             finishWaiting(complete = false)
             startNextChapter(autoPlay = true)

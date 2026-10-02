@@ -5,6 +5,8 @@ import {
   LibrarySortOrder,
 } from '@screens/library/constants/constants';
 import type { TtsEngine, TtsSkipUnit, TtsVoice } from '@modules/nitro-tts';
+import type { CleanerOptions } from '@services/listen/cleaner/cleanChapterHtml';
+import type { SpeechRuleSettings } from '@services/listen/speechRules';
 import { useMMKVObject } from 'react-native-mmkv';
 import { useEffect, useMemo } from 'react';
 import { getMMKVObject } from '@utils/mmkv/mmkv';
@@ -239,6 +241,8 @@ export interface ChapterReaderSettings {
     autoPauseMinutes?: number;
     shakeToExtend?: boolean;
     favourites?: TtsFavourite[];
+    cleaner?: Partial<CleanerOptions>;
+    speech?: Partial<SpeechRuleSettings>;
   };
   epubLocation: string;
   epubUseAppTheme: boolean;

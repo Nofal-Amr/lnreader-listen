@@ -7,9 +7,11 @@ import {
 } from '@database/queries/ChapterQueries';
 import type { ChapterInfo } from '@database/types';
 
+import { fixTitle } from './cleaner/fixTitle';
 import { computeBreaks } from './computeBreaks';
 import { extractTtsParagraphs } from './extractTtsParagraphs';
 import { loadChapterHtml } from './loadChapterHtml';
+import { getSpeechTransform } from './textPipeline';
 
 export type ListenNovel = {
   id: number;
@@ -35,6 +37,7 @@ export type ListenQueueDeps = {
   ) => Promise<string>;
   markChapterRead: (id: number) => Promise<void>;
   updateChapterProgress: (id: number, progress: number) => Promise<void>;
+  speechTransform: () => (text: string) => string;
 };
 
 type Session = Pick<
@@ -74,18 +77,21 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
         paragraphs = [];
       }
       if (myRun !== run) return;
-      if (paragraphs.length === 0) continue;
+      const speak = deps.speechTransform();
+      const spoken = paragraphs.map(speak);
+      // Blank entries keep their slot so indices match the reader highlight.
+      if (!spoken.some(text => text.trim())) continue;
       lastQueued = cursor;
       await session.appendChapter({
         chapterId: String(cursor.id),
-        paragraphs: paragraphs.map((text, index) => ({
+        paragraphs: spoken.map((text, index) => ({
           id: String(index),
           text,
           breaks: computeBreaks(text),
         })),
         metadata: {
           novelName: novel.name,
-          chapterName: cursor.name,
+          chapterName: fixTitle(cursor.name),
           chapterId: String(cursor.id),
           coverUri: novel.cover || undefined,
         },
@@ -161,4 +167,5 @@ export const listenQueue = createListenQueue({
   loadChapterHtml: (novel, chapter) => loadChapterHtml(novel, chapter),
   markChapterRead,
   updateChapterProgress,
+  speechTransform: getSpeechTransform,
 });

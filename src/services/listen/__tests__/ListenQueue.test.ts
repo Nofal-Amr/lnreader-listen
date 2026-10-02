@@ -42,6 +42,7 @@ const makeDeps = () => ({
   ),
   markChapterRead: jest.fn(async () => undefined),
   updateChapterProgress: jest.fn(async () => undefined),
+  speechTransform: () => (text: string) => text,
 });
 
 describe('ListenQueue', () => {

@@ -16,6 +16,8 @@ import {
 } from '@hooks/persisted';
 import { fetchPage } from '@services/plugin/fetch';
 import { loadRawChapterHtml } from '@services/listen/loadChapterHtml';
+import { cleanChapterHtml } from '@services/listen/cleaner/cleanChapterHtml';
+import { getCleanerOptions } from '@services/listen/textPipeline';
 import {
   RefObject,
   useCallback,
@@ -179,11 +181,9 @@ export default function useChapter(
       }
 
       const pending = loadChapterText(chap).then(text => {
-        const sanitized = sanitizeChapterText(
-          novel.pluginId,
-          novel.name,
-          chap.name,
-          text,
+        const sanitized = cleanChapterHtml(
+          sanitizeChapterText(novel.pluginId, novel.name, chap.name, text),
+          getCleanerOptions(),
         );
         if (!text.trim()) {
           chapterTextCache.remove(chap.id);

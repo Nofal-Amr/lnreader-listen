@@ -9,6 +9,7 @@ import {
   TtsSettings,
 } from '@modules/nitro-tts';
 import { computeBreaks } from '@services/listen/computeBreaks';
+import { getSpeechTransform } from '@services/listen/textPipeline';
 
 type TtsCommand = 'next' | 'pause' | 'play' | 'previous' | 'replay' | 'stop';
 
@@ -77,13 +78,13 @@ export const useTtsSession = () => {
         setError('No readable paragraphs were found in this chapter.');
         return;
       }
+      const speak = getSpeechTransform();
       await run(async session => {
         await session.load(
-          queue.map((text, index) => ({
-            id: String(index),
-            text,
-            breaks: computeBreaks(text),
-          })),
+          queue.map((raw, index) => {
+            const text = speak(raw);
+            return { id: String(index), text, breaks: computeBreaks(text) };
+          }),
           startIndex,
           metadata,
           settings,
