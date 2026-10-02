@@ -14,8 +14,8 @@ import {
   useTrackedNovel,
   useTracker,
 } from '@hooks/persisted';
-import { fetchChapter, fetchPage } from '@services/plugin/fetch';
-import { NOVEL_STORAGE } from '@utils/Storages';
+import { fetchPage } from '@services/plugin/fetch';
+import { loadRawChapterHtml } from '@services/listen/loadChapterHtml';
 import {
   RefObject,
   useCallback,
@@ -34,7 +34,6 @@ import defaultTo from 'lodash-es/defaultTo';
 import { showToast } from '@utils/showToast';
 import { getString } from '@i18n/translations';
 import NativeVolumeButtonListener from '@modules/native-volume-button-listener';
-import NativeFile from '@modules/native-file';
 import { useNovelActions, useNovelValue } from '@screens/novel/NovelContext';
 import useTimeTracking from './useTimeTracking';
 import { useEventListener } from 'expo';
@@ -160,20 +159,8 @@ export default function useChapter(
     return () => NativeVolumeButtonListener.setActive(false);
   }, [useVolumeButtons]);
 
-  /**
-   * Reads the chapter from local storage, falling back to the plugin when it
-   * is not downloaded. A single `readFile` doubles as the existence check to
-   * save a native round trip on the critical path of a downloaded chapter.
-   */
   const loadChapterText = useCallback(
-    async (chap: ChapterInfo) => {
-      const filePath = `${NOVEL_STORAGE}/${novel.pluginId}/${chap.novelId}/${chap.id}/index.html`;
-      try {
-        return await NativeFile.readFile(filePath);
-      } catch {
-        return await fetchChapter(novel.pluginId, chap.path);
-      }
-    },
+    (chap: ChapterInfo) => loadRawChapterHtml(novel.pluginId, chap),
     [novel.pluginId],
   );
 
