@@ -25,4 +25,15 @@ final class HybridTtsFactory: HybridTtsFactorySpec {
       .sorted { $0.name < $1.name }
     return Promise.resolved(withResult: voices)
   }
+
+  // Voice preview is Android-only; iOS is not shipped by this fork.
+  func previewVoice(
+    text: String,
+    rate: Double,
+    pitch: Double,
+    engineName: String?,
+    voiceIdentifier: String?
+  ) throws -> Promise<Void> {
+    return Promise.resolved()
+  }
 }

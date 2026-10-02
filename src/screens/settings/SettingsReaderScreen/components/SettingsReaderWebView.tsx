@@ -8,12 +8,11 @@ import {
   useTheme,
 } from '@hooks/persisted';
 import { getString } from '@i18n/translations';
-import type { ChapterReaderSettings } from '@hooks/persisted/useSettings';
 
 import color from 'color';
 import { useBatteryLevel } from 'react-native-device-info';
 import { useTtsSession } from '@screens/reader/hooks/useTtsSession';
-import type { TtsSettings } from '@modules/nitro-tts';
+import { toNativeTtsSettings } from '@services/listen/ttsSettings';
 import { dummyHTML } from '@screens/settings/SettingsCustomCodeScreen/Components/dummies';
 
 type WebViewPostEvent = {
@@ -26,15 +25,6 @@ type SettingsReaderWebViewProps = {
   customCSS?: string;
   customJS?: string;
 };
-
-const toNativeTtsSettings = (
-  settings: ChapterReaderSettings['tts'],
-): TtsSettings => ({
-  engineName: settings?.engine?.name,
-  voiceIdentifier: settings?.voice?.identifier,
-  rate: settings?.rate ?? 1,
-  pitch: settings?.pitch ?? 1,
-});
 
 const SettingsReaderWebView = ({
   customCSS,

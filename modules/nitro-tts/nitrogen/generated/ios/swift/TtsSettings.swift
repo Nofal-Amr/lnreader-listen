@@ -18,7 +18,7 @@ public extension TtsSettings {
   /**
    * Create a new instance of `TtsSettings`.
    */
-  init(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double) {
+  init(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double, pauseCommaMs: Double?, pauseSentenceMs: Double?, pauseParagraphMs: Double?, pauseChapterMs: Double?, rewindUnit: TtsSkipUnit?, forwardUnit: TtsSkipUnit?, mixWithOthers: Bool?, autoPauseMinutes: Double?) {
     self.init({ () -> bridge.std__optional_std__string_ in
       if let __unwrappedValue = engineName {
         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
@@ -31,7 +31,55 @@ public extension TtsSettings {
       } else {
         return .init()
       }
-    }(), rate, pitch)
+    }(), rate, pitch, { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = pauseCommaMs {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = pauseSentenceMs {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = pauseParagraphMs {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = pauseChapterMs {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_TtsSkipUnit_ in
+      if let __unwrappedValue = rewindUnit {
+        return bridge.create_std__optional_TtsSkipUnit_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_TtsSkipUnit_ in
+      if let __unwrappedValue = forwardUnit {
+        return bridge.create_std__optional_TtsSkipUnit_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_bool_ in
+      if let __unwrappedValue = mixWithOthers {
+        return bridge.create_std__optional_bool_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = autoPauseMinutes {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }())
   }
 
   @inline(__always)
@@ -66,5 +114,87 @@ public extension TtsSettings {
   @inline(__always)
   var pitch: Double {
     return self.__pitch
+  }
+  
+  @inline(__always)
+  var pauseCommaMs: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__pauseCommaMs) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__pauseCommaMs)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var pauseSentenceMs: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__pauseSentenceMs) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__pauseSentenceMs)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var pauseParagraphMs: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__pauseParagraphMs) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__pauseParagraphMs)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var pauseChapterMs: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__pauseChapterMs) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__pauseChapterMs)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var rewindUnit: TtsSkipUnit? {
+    return self.__rewindUnit.value
+  }
+  
+  @inline(__always)
+  var forwardUnit: TtsSkipUnit? {
+    return self.__forwardUnit.value
+  }
+  
+  @inline(__always)
+  var mixWithOthers: Bool? {
+    return { () -> Bool? in
+      if bridge.has_value_std__optional_bool_(self.__mixWithOthers) {
+        let __unwrapped = bridge.get_std__optional_bool_(self.__mixWithOthers)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var autoPauseMinutes: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__autoPauseMinutes) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__autoPauseMinutes)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
   }
 }

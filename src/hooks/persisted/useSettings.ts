@@ -4,7 +4,7 @@ import {
   LibraryFilter,
   LibrarySortOrder,
 } from '@screens/library/constants/constants';
-import { TtsEngine, TtsVoice } from '@modules/nitro-tts';
+import type { TtsEngine, TtsSkipUnit, TtsVoice } from '@modules/nitro-tts';
 import { useMMKVObject } from 'react-native-mmkv';
 import { useEffect, useMemo } from 'react';
 import { getMMKVObject } from '@utils/mmkv/mmkv';
@@ -13,6 +13,13 @@ import type {
   AutomaticBackupInterval,
   AutomaticLibraryUpdateInterval,
 } from '@services/backgroundTasks';
+
+/** A pinned engine + voice for one-tap switching in the player. */
+export interface TtsFavourite {
+  engine?: TtsEngine;
+  voice?: TtsVoice;
+  label: string;
+}
 
 export const APP_SETTINGS = 'APP_SETTINGS';
 
@@ -222,6 +229,16 @@ export interface ChapterReaderSettings {
     pitch?: number;
     autoPageAdvance?: boolean;
     scrollToTop?: boolean;
+    pauseCommaMs?: number;
+    pauseSentenceMs?: number;
+    pauseParagraphMs?: number;
+    pauseChapterMs?: number;
+    rewindUnit?: TtsSkipUnit;
+    forwardUnit?: TtsSkipUnit;
+    mixWithOthers?: boolean;
+    autoPauseMinutes?: number;
+    shakeToExtend?: boolean;
+    favourites?: TtsFavourite[];
   };
   epubLocation: string;
   epubUseAppTheme: boolean;

@@ -24,6 +24,9 @@ public protocol HybridTtsSessionSpec_protocol: HybridObject {
   func updateSettings(settings: TtsSettings) throws -> Promise<Void>
   func appendChapter(chapter: TtsChapter) throws -> Promise<Void>
   func clearUpcoming() throws -> Promise<Void>
+  func setSleepTimer(timer: TtsSleepTimer) throws -> Promise<Void>
+  func cancelSleepTimer() throws -> Promise<Void>
+  func addOnSleepTimerChangedListener(listener: @escaping (_ state: TtsSleepTimerState) -> Void) throws -> ListenerSubscription
   func addOnChapterChangedListener(listener: @escaping (_ chapterId: String) -> Void) throws -> ListenerSubscription
   func addOnStateChangedListener(listener: @escaping (_ state: TtsPlaybackState) -> Void) throws -> ListenerSubscription
   func addOnProgressChangedListener(listener: @escaping (_ progress: TtsProgress) -> Void) throws -> ListenerSubscription

@@ -10,7 +10,13 @@
 #include <fbjni/fbjni.h>
 #include "TtsParagraph.hpp"
 
+#include "JTtsBreak.hpp"
+#include "JTtsBreakKind.hpp"
+#include "TtsBreak.hpp"
+#include "TtsBreakKind.hpp"
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace margelo::nitro::nitrotts {
 
@@ -35,9 +41,21 @@ namespace margelo::nitro::nitrotts {
       jni::local_ref<jni::JString> id = this->getFieldValue(fieldId);
       static const auto fieldText = clazz->getField<jni::JString>("text");
       jni::local_ref<jni::JString> text = this->getFieldValue(fieldText);
+      static const auto fieldBreaks = clazz->getField<jni::JArrayClass<JTtsBreak>>("breaks");
+      jni::local_ref<jni::JArrayClass<JTtsBreak>> breaks = this->getFieldValue(fieldBreaks);
       return TtsParagraph(
         id->toStdString(),
-        text->toStdString()
+        text->toStdString(),
+        breaks != nullptr ? std::make_optional([&](auto&& __input) {
+          size_t __size = __input->size();
+          std::vector<TtsBreak> __vector;
+          __vector.reserve(__size);
+          for (size_t __i = 0; __i < __size; __i++) {
+            auto __element = __input->getElement(__i);
+            __vector.push_back(__element->toCpp());
+          }
+          return __vector;
+        }(breaks)) : std::nullopt
       );
     }
 
@@ -47,13 +65,23 @@ namespace margelo::nitro::nitrotts {
      */
     [[maybe_unused]]
     static jni::local_ref<JTtsParagraph::javaobject> fromCpp(const TtsParagraph& value) {
-      using JSignature = JTtsParagraph(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
+      using JSignature = JTtsParagraph(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JTtsBreak>>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         jni::make_jstring(value.id),
-        jni::make_jstring(value.text)
+        jni::make_jstring(value.text),
+        value.breaks.has_value() ? [&](auto&& __input) {
+          size_t __size = __input.size();
+          jni::local_ref<jni::JArrayClass<JTtsBreak>> __array = jni::JArrayClass<JTtsBreak>::newArray(__size);
+          for (size_t __i = 0; __i < __size; __i++) {
+            const auto& __element = __input[__i];
+            auto __elementJni = JTtsBreak::fromCpp(__element);
+            __array->setElement(__i, *__elementJni);
+          }
+          return __array;
+        }(value.breaks.value()) : nullptr
       );
     }
   };

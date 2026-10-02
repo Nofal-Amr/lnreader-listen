@@ -18,6 +18,7 @@
 #include "JHybridTtsFactorySpec.hpp"
 #include "JHybridTtsSessionSpec.hpp"
 #include "JFunc_void.hpp"
+#include "JFunc_void_TtsSleepTimerState.hpp"
 #include "JFunc_void_std__string.hpp"
 #include "JFunc_void_TtsPlaybackState.hpp"
 #include "JFunc_void_TtsProgress.hpp"
@@ -48,6 +49,7 @@ void registerAllNatives() {
   margelo::nitro::nitrotts::JHybridTtsFactorySpec::CxxPart::registerNatives();
   margelo::nitro::nitrotts::JHybridTtsSessionSpec::CxxPart::registerNatives();
   margelo::nitro::nitrotts::JFunc_void_cxx::registerNatives();
+  margelo::nitro::nitrotts::JFunc_void_TtsSleepTimerState_cxx::registerNatives();
   margelo::nitro::nitrotts::JFunc_void_std__string_cxx::registerNatives();
   margelo::nitro::nitrotts::JFunc_void_TtsPlaybackState_cxx::registerNatives();
   margelo::nitro::nitrotts::JFunc_void_TtsProgress_cxx::registerNatives();

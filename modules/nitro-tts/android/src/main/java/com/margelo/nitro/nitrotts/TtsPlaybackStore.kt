@@ -32,8 +32,9 @@ internal object TtsPlaybackStore {
     private val giveUpWaiting = Runnable {
         if (waitingForChapter) finishWaiting(complete = true)
     }
-    private const val CHAPTER_GAP_MS = 600L
     private const val WAIT_FOR_CHAPTER_MS = 30_000L
+    private const val DEFAULT_PARAGRAPH_PAUSE_MS = 250L
+    private const val DEFAULT_CHAPTER_PAUSE_MS = 800L
 
     private var applicationContext: Context? = null
     private var engine: TextToSpeech? = null
@@ -42,9 +43,27 @@ internal object TtsPlaybackStore {
     private var paragraphs: List<TtsParagraph> = emptyList()
     private var currentIndex = 0
     private var metadata: TtsMetadata? = null
-    private var settings = TtsSettings(null, null, 1.0, 1.0)
+    private var settings = TtsSettings(null, null, 1.0, 1.0, null, null, null, null, null, null, null, null)
     private var state = TtsPlaybackState.IDLE
     private var generation = 0L
+
+    // Position inside the current paragraph: the active utterance covers
+    // [charStart, utteranceEnd); spokenPos follows onRangeStart word by word.
+    private var charStart = 0
+    private var utteranceEnd = 0
+    private var utteranceKind = BoundaryKind.PARAGRAPH
+    private var spokenPos = 0
+    private var currentUtteranceId: String? = null
+
+    private val sleepTimerListeners = TtsListenerRegistry<TtsSleepTimerState>()
+    private val sleepTimer = SleepTimerController(
+        handler = ownerHandler,
+        onExpire = { pause() },
+        onChange = { sleepTimerListeners.emit(it) },
+    )
+    private val autoPause = Runnable {
+        if (state == TtsPlaybackState.PLAYING) pause()
+    }
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
@@ -175,8 +194,11 @@ internal object TtsPlaybackStore {
         paragraphs = nextParagraphs.filter { it.text.isNotBlank() }
         require(paragraphs.isNotEmpty()) { "The TTS queue contains no readable paragraphs." }
         currentIndex = initialIndex.coerceIn(paragraphs.indices)
+        charStart = 0
+        spokenPos = 0
         metadata = nextMetadata
         settings = nextSettings
+        noteInteraction()
         state = TtsPlaybackState.PAUSED
         emitProgress()
         emitState()
@@ -188,6 +210,7 @@ internal object TtsPlaybackStore {
     fun play() {
         requireReady()
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before starting TTS." }
+        noteInteraction()
         speakCurrent()
     }
 
@@ -198,6 +221,7 @@ internal object TtsPlaybackStore {
      * call ends instead of auto-resuming.
      */
     fun pause() {
+        ownerHandler.removeCallbacks(autoPause)
         resumeOnFocusGain = false
         abandonAudioFocus()
         if (waitingForChapter) {
@@ -216,7 +240,11 @@ internal object TtsPlaybackStore {
         finishWaiting(complete = false)
         paragraphs = emptyList()
         currentIndex = 0
+        charStart = 0
+        spokenPos = 0
         metadata = null
+        sleepTimer.cancel()
+        ownerHandler.removeCallbacks(autoPause)
         state = TtsPlaybackState.IDLE
         resumeOnFocusGain = false
         abandonAudioFocus()
@@ -231,6 +259,8 @@ internal object TtsPlaybackStore {
         }
         generation += 1
         engine?.stop()
+        // Resume from the word being spoken, not the start of the sentence.
+        charStart = spokenPos.coerceIn(0, paragraphs.getOrNull(currentIndex)?.text?.length ?: 0)
         state = TtsPlaybackState.PAUSED
         emitState()
     }
@@ -241,6 +271,10 @@ internal object TtsPlaybackStore {
      * sounds, alerts) are left alone - see [handleAudioFocusChange].
      */
     private fun requestAudioFocus(): Boolean {
+        if (settings.mixWithOthers == true) {
+            abandonAudioFocus()
+            return true
+        }
         if (hasAudioFocus) return true
         val manager = audioManager ?: return false
 
@@ -311,28 +345,51 @@ internal object TtsPlaybackStore {
 
     fun skipPrevious() {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before seeking." }
-        currentIndex = (currentIndex - 1).coerceAtLeast(0)
+        noteInteraction()
+        val unit = settings.rewindUnit ?: TtsSkipUnit.CLAUSE
+        val target = TtsSpeechCursor.previousStart(paragraphs[currentIndex], spokenPos, unit)
+        when {
+            target != null -> charStart = target
+            currentIndex > 0 -> {
+                currentIndex -= 1
+                charStart = TtsSpeechCursor.lastStart(paragraphs[currentIndex], unit)
+            }
+            else -> charStart = 0
+        }
         speakCurrent()
     }
 
     fun skipNext() {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before seeking." }
-        if (currentIndex >= paragraphs.lastIndex) {
-            continueToNextChapter()
-            return
+        noteInteraction()
+        val unit = settings.forwardUnit ?: TtsSkipUnit.SENTENCE
+        val target = TtsSpeechCursor.nextStart(paragraphs[currentIndex], spokenPos, unit)
+        when {
+            target != null -> charStart = target
+            currentIndex < paragraphs.lastIndex -> {
+                currentIndex += 1
+                charStart = 0
+            }
+            else -> {
+                continueToNextChapter()
+                return
+            }
         }
-        currentIndex += 1
         speakCurrent()
     }
 
     fun replayCurrent() {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before replaying." }
+        noteInteraction()
+        charStart = 0
         speakCurrent()
     }
 
     fun seekTo(index: Int) {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before seeking." }
+        noteInteraction()
         currentIndex = index.coerceIn(paragraphs.indices)
+        charStart = 0
         speakCurrent()
     }
 
@@ -340,8 +397,34 @@ internal object TtsPlaybackStore {
         requireReady()
         val shouldResume = state == TtsPlaybackState.PLAYING
         settings = nextSettings
+        noteInteraction()
         if (shouldResume) {
+            charStart = spokenPos
             speakCurrent()
+        }
+    }
+
+    fun setSleepTimer(timer: TtsSleepTimer) {
+        val context = checkNotNull(applicationContext)
+        noteInteraction()
+        sleepTimer.start(context, timer)
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimer.cancel()
+    }
+
+    fun addSleepTimerListener(listener: (TtsSleepTimerState) -> Unit): () -> Unit {
+        runOnOwner { listener(sleepTimer.state()) }
+        return sleepTimerListeners.add(listener)
+    }
+
+    /** Restarts the inactivity countdown; only user commands call this. */
+    private fun noteInteraction() {
+        ownerHandler.removeCallbacks(autoPause)
+        val minutes = settings.autoPauseMinutes ?: 0.0
+        if (minutes > 0) {
+            ownerHandler.postDelayed(autoPause, (minutes * 60_000.0).toLong())
         }
     }
 
@@ -368,6 +451,7 @@ internal object TtsPlaybackStore {
         return TtsPlaybackSnapshot(state, metadata, currentProgress())
     }
 
+    /** Speaks from [charStart] to the next active break of the current paragraph. */
     private fun speakCurrent() {
         if (engine == null || settings.engineName != boundEngineName) {
             pendingInitialization.add { result ->
@@ -387,28 +471,38 @@ internal object TtsPlaybackStore {
 
         val activeEngine = checkNotNull(engine)
         val paragraph = paragraphs[currentIndex]
+        charStart = charStart.coerceIn(0, paragraph.text.length)
+        val splitClauses = (settings.pauseCommaMs ?: 0.0) > 0
+        val (end, kind) = TtsSpeechCursor.utteranceEnd(paragraph, charStart, splitClauses)
+        utteranceEnd = end
+        utteranceKind = kind
+        spokenPos = charStart
         generation += 1
-        val utteranceId = utteranceId(generation, currentIndex)
-
-        activeEngine.setSpeechRate(settings.rate.toFloat().coerceIn(0.1f, 4.0f))
-        activeEngine.setPitch(settings.pitch.toFloat().coerceIn(0.1f, 2.0f))
-        applyVoice(activeEngine)
-
-        val result = activeEngine.speak(
-            paragraph.text,
-            TextToSpeech.QUEUE_FLUSH,
-            Bundle(),
-            utteranceId,
-        )
-        if (result == TextToSpeech.ERROR) {
-            fail("The text-to-speech engine rejected the current paragraph.")
-            return
-        }
+        val utteranceId = "lnreader-$generation-$currentIndex-$charStart"
+        currentUtteranceId = utteranceId
 
         state = TtsPlaybackState.PLAYING
         resumeOnFocusGain = false
         emitProgress()
         emitState()
+
+        val text = paragraph.text.substring(charStart, end)
+        if (text.isBlank()) {
+            ownerHandler.post { advance(utteranceId) }
+            return
+        }
+
+        activeEngine.setSpeechRate(settings.rate.toFloat().coerceIn(0.1f, 4.0f))
+        activeEngine.setPitch(settings.pitch.toFloat().coerceIn(0.1f, 2.0f))
+        applyVoice(activeEngine)
+
+        val params = Bundle().apply {
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, sleepTimer.volume())
+        }
+        val result = activeEngine.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        if (result == TextToSpeech.ERROR) {
+            fail("The text-to-speech engine rejected the current paragraph.")
+        }
     }
 
     private fun applyVoice(activeEngine: TextToSpeech) {
@@ -427,15 +521,44 @@ internal object TtsPlaybackStore {
     }
 
     private fun advance(utteranceId: String) {
-        if (utteranceId != utteranceId(generation, currentIndex)) {
+        if (utteranceId != currentUtteranceId) {
             return
         }
-        if (currentIndex >= paragraphs.lastIndex) {
-            continueToNextChapter()
+        val paragraph = paragraphs.getOrNull(currentIndex) ?: return
+        val pauseMs = when {
+            utteranceEnd < paragraph.text.length -> {
+                charStart = utteranceEnd
+                when (utteranceKind) {
+                    BoundaryKind.CLAUSE -> settings.pauseCommaMs
+                    BoundaryKind.SENTENCE -> settings.pauseSentenceMs
+                    BoundaryKind.PARAGRAPH -> 0.0
+                }?.toLong() ?: 0L
+            }
+            currentIndex < paragraphs.lastIndex -> {
+                currentIndex += 1
+                charStart = 0
+                settings.pauseParagraphMs?.toLong() ?: DEFAULT_PARAGRAPH_PAUSE_MS
+            }
+            else -> {
+                continueToNextChapter()
+                return
+            }
+        }
+        spokenPos = charStart
+        afterPause(pauseMs) { speakCurrent() }
+    }
+
+    /** Runs [action] after [ms] of silence unless playback was paused/seeked meanwhile. */
+    private fun afterPause(ms: Long, action: () -> Unit) {
+        if (ms <= 0) {
+            action()
             return
         }
-        currentIndex += 1
-        speakCurrent()
+        generation += 1
+        val token = generation
+        ownerHandler.postDelayed({
+            if (generation == token && state == TtsPlaybackState.PLAYING) action()
+        }, ms)
     }
 
     fun appendChapter(chapter: TtsChapter) {
@@ -444,7 +567,7 @@ internal object TtsPlaybackStore {
         upcoming.addLast(TtsChapter(chapter.chapterId, readable.toTypedArray(), chapter.metadata))
         if (waitingForChapter) {
             finishWaiting(complete = false)
-            startNextChapter()
+            startNextChapter(autoPlay = true)
         }
     }
 
@@ -456,23 +579,38 @@ internal object TtsPlaybackStore {
         chapterListeners.add(listener)
 
     private fun continueToNextChapter() {
-        if (upcoming.isNotEmpty()) startNextChapter() else waitForChapter()
+        val sleepNow = sleepTimer.consumeChapter()
+        when {
+            upcoming.isNotEmpty() -> startNextChapter(autoPlay = !sleepNow)
+            sleepNow -> {
+                generation += 1
+                state = TtsPlaybackState.PAUSED
+                abandonAudioFocus()
+                emitState()
+            }
+            else -> waitForChapter()
+        }
     }
 
-    private fun startNextChapter() {
+    private fun startNextChapter(autoPlay: Boolean) {
         val next = upcoming.removeFirst()
         paragraphs = next.paragraphs.toList()
         currentIndex = 0
+        charStart = 0
+        spokenPos = 0
         metadata = next.metadata
         chapterListeners.emit(next.chapterId)
         emitProgress()
-        generation += 1
-        val gapGeneration = generation
-        // A short silence marks the chapter boundary; a pause/seek during it
-        // bumps `generation` and cancels the delayed start.
-        ownerHandler.postDelayed({
-            if (generation == gapGeneration) speakCurrent()
-        }, CHAPTER_GAP_MS)
+        if (!autoPlay) {
+            // The sleep timer ended here: sit at the start of the next chapter.
+            generation += 1
+            state = TtsPlaybackState.PAUSED
+            abandonAudioFocus()
+            emitState()
+            return
+        }
+        state = TtsPlaybackState.PLAYING
+        afterPause(settings.pauseChapterMs?.toLong() ?: DEFAULT_CHAPTER_PAUSE_MS) { speakCurrent() }
     }
 
     private fun waitForChapter() {
@@ -539,10 +677,6 @@ internal object TtsPlaybackStore {
         )
     }
 
-    private fun utteranceId(queueGeneration: Long, index: Int): String {
-        return "lnreader-$queueGeneration-$index"
-    }
-
     private fun completeInitialization(result: Result<Unit>) {
         val callbacks = pendingInitialization.toList()
         pendingInitialization.clear()
@@ -564,9 +698,17 @@ internal object TtsPlaybackStore {
     private val progressListener = object : UtteranceProgressListener() {
         override fun onStart(utteranceId: String) {
             runOnOwner {
-                if (utteranceId == utteranceId(generation, currentIndex)) {
+                if (utteranceId == currentUtteranceId) {
                     state = TtsPlaybackState.PLAYING
                     emitState()
+                }
+            }
+        }
+
+        override fun onRangeStart(utteranceId: String, start: Int, end: Int, frame: Int) {
+            runOnOwner {
+                if (utteranceId == currentUtteranceId) {
+                    spokenPos = charStart + start
                 }
             }
         }
@@ -578,7 +720,7 @@ internal object TtsPlaybackStore {
         @Deprecated("Deprecated by Android")
         override fun onError(utteranceId: String) {
             runOnOwner {
-                if (utteranceId == utteranceId(generation, currentIndex)) {
+                if (utteranceId == currentUtteranceId) {
                     fail("The text-to-speech engine failed while speaking.")
                 }
             }
@@ -586,7 +728,7 @@ internal object TtsPlaybackStore {
 
         override fun onError(utteranceId: String, errorCode: Int) {
             runOnOwner {
-                if (utteranceId == utteranceId(generation, currentIndex)) {
+                if (utteranceId == currentUtteranceId) {
                     fail("The text-to-speech engine failed with error code $errorCode.")
                 }
             }

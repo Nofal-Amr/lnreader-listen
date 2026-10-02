@@ -6,6 +6,13 @@ export const Tts = NitroModules.createHybridObject<TtsFactory>('TtsFactory');
 export type { TtsFactory } from './specs/TtsFactory.nitro';
 export type { TtsSession } from './specs/TtsSession.nitro';
 export type { TtsChapter } from './types/TtsChapter';
+export type { TtsBreak, TtsBreakKind } from './types/TtsBreak';
+export type { TtsSkipUnit } from './types/TtsSkipUnit';
+export type {
+  TtsSleepTimer,
+  TtsSleepTimerMode,
+  TtsSleepTimerState,
+} from './types/TtsSleepTimer';
 export type { ListenerSubscription } from './types/ListenerSubscription';
 export type { TtsEngine } from './types/TtsEngine';
 export type { TtsMetadata } from './types/TtsMetadata';

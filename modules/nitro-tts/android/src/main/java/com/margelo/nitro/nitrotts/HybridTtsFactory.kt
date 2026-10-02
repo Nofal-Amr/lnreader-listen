@@ -39,4 +39,21 @@ final class HybridTtsFactory : HybridTtsFactorySpec() {
         }
         return promise
     }
+
+    override fun previewVoice(
+        text: String,
+        rate: Double,
+        pitch: Double,
+        engineName: String?,
+        voiceIdentifier: String?,
+    ): Promise<Unit> {
+        val promise = Promise<Unit>()
+        TtsVoicePreview.speak(context, text, rate, pitch, engineName, voiceIdentifier) { result ->
+            result.fold(
+                onSuccess = { promise.resolve(Unit) },
+                onFailure = { promise.reject(it) },
+            )
+        }
+        return promise
+    }
 }

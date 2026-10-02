@@ -28,9 +28,13 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `TtsBreak` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsBreak; }
 
 #include <string>
+#include "TtsBreak.hpp"
+#include <vector>
+#include <optional>
 
 namespace margelo::nitro::nitrotts {
 
@@ -41,10 +45,11 @@ namespace margelo::nitro::nitrotts {
   public:
     std::string id     SWIFT_PRIVATE;
     std::string text     SWIFT_PRIVATE;
+    std::optional<std::vector<TtsBreak>> breaks     SWIFT_PRIVATE;
 
   public:
     TtsParagraph() = default;
-    explicit TtsParagraph(std::string id, std::string text): id(id), text(text) {}
+    explicit TtsParagraph(std::string id, std::string text, std::optional<std::vector<TtsBreak>> breaks): id(id), text(text), breaks(breaks) {}
 
   public:
     friend bool operator==(const TtsParagraph& lhs, const TtsParagraph& rhs) = default;
@@ -61,13 +66,15 @@ namespace margelo::nitro {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::nitrotts::TtsParagraph(
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "id"))),
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "text")))
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "text"))),
+        JSIConverter<std::optional<std::vector<margelo::nitro::nitrotts::TtsBreak>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "breaks")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrotts::TtsParagraph& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "id"), JSIConverter<std::string>::toJSI(runtime, arg.id));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "text"), JSIConverter<std::string>::toJSI(runtime, arg.text));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "breaks"), JSIConverter<std::optional<std::vector<margelo::nitro::nitrotts::TtsBreak>>>::toJSI(runtime, arg.breaks));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -80,6 +87,7 @@ namespace margelo::nitro {
       }
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "id")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "text")))) return false;
+      if (!JSIConverter<std::optional<std::vector<margelo::nitro::nitrotts::TtsBreak>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "breaks")))) return false;
       return true;
     }
   };

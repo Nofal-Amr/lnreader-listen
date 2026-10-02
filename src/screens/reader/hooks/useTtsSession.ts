@@ -8,6 +8,7 @@ import {
   TtsSession,
   TtsSettings,
 } from '@modules/nitro-tts';
+import { computeBreaks } from '@services/listen/computeBreaks';
 
 type TtsCommand = 'next' | 'pause' | 'play' | 'previous' | 'replay' | 'stop';
 
@@ -78,7 +79,11 @@ export const useTtsSession = () => {
       }
       await run(async session => {
         await session.load(
-          queue.map((text, index) => ({ id: String(index), text })),
+          queue.map((text, index) => ({
+            id: String(index),
+            text,
+            breaks: computeBreaks(text),
+          })),
           startIndex,
           metadata,
           settings,

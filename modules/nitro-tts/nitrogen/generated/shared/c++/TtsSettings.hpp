@@ -28,10 +28,12 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `TtsSkipUnit` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSkipUnit; }
 
 #include <string>
 #include <optional>
+#include "TtsSkipUnit.hpp"
 
 namespace margelo::nitro::nitrotts {
 
@@ -44,10 +46,18 @@ namespace margelo::nitro::nitrotts {
     std::optional<std::string> voiceIdentifier     SWIFT_PRIVATE;
     double rate     SWIFT_PRIVATE;
     double pitch     SWIFT_PRIVATE;
+    std::optional<double> pauseCommaMs     SWIFT_PRIVATE;
+    std::optional<double> pauseSentenceMs     SWIFT_PRIVATE;
+    std::optional<double> pauseParagraphMs     SWIFT_PRIVATE;
+    std::optional<double> pauseChapterMs     SWIFT_PRIVATE;
+    std::optional<TtsSkipUnit> rewindUnit     SWIFT_PRIVATE;
+    std::optional<TtsSkipUnit> forwardUnit     SWIFT_PRIVATE;
+    std::optional<bool> mixWithOthers     SWIFT_PRIVATE;
+    std::optional<double> autoPauseMinutes     SWIFT_PRIVATE;
 
   public:
     TtsSettings() = default;
-    explicit TtsSettings(std::optional<std::string> engineName, std::optional<std::string> voiceIdentifier, double rate, double pitch): engineName(engineName), voiceIdentifier(voiceIdentifier), rate(rate), pitch(pitch) {}
+    explicit TtsSettings(std::optional<std::string> engineName, std::optional<std::string> voiceIdentifier, double rate, double pitch, std::optional<double> pauseCommaMs, std::optional<double> pauseSentenceMs, std::optional<double> pauseParagraphMs, std::optional<double> pauseChapterMs, std::optional<TtsSkipUnit> rewindUnit, std::optional<TtsSkipUnit> forwardUnit, std::optional<bool> mixWithOthers, std::optional<double> autoPauseMinutes): engineName(engineName), voiceIdentifier(voiceIdentifier), rate(rate), pitch(pitch), pauseCommaMs(pauseCommaMs), pauseSentenceMs(pauseSentenceMs), pauseParagraphMs(pauseParagraphMs), pauseChapterMs(pauseChapterMs), rewindUnit(rewindUnit), forwardUnit(forwardUnit), mixWithOthers(mixWithOthers), autoPauseMinutes(autoPauseMinutes) {}
 
   public:
     friend bool operator==(const TtsSettings& lhs, const TtsSettings& rhs) = default;
@@ -66,7 +76,15 @@ namespace margelo::nitro {
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "engineName"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "voiceIdentifier"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rate"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pitch")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pitch"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseCommaMs"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseSentenceMs"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseParagraphMs"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseChapterMs"))),
+        JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rewindUnit"))),
+        JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "forwardUnit"))),
+        JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "mixWithOthers"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrotts::TtsSettings& arg) {
@@ -75,6 +93,14 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "voiceIdentifier"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.voiceIdentifier));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "rate"), JSIConverter<double>::toJSI(runtime, arg.rate));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "pitch"), JSIConverter<double>::toJSI(runtime, arg.pitch));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "pauseCommaMs"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.pauseCommaMs));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "pauseSentenceMs"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.pauseSentenceMs));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "pauseParagraphMs"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.pauseParagraphMs));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "pauseChapterMs"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.pauseChapterMs));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "rewindUnit"), JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::toJSI(runtime, arg.rewindUnit));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "forwardUnit"), JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::toJSI(runtime, arg.forwardUnit));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "mixWithOthers"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.mixWithOthers));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.autoPauseMinutes));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -89,6 +115,14 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "voiceIdentifier")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rate")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pitch")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseCommaMs")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseSentenceMs")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseParagraphMs")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "pauseChapterMs")))) return false;
+      if (!JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rewindUnit")))) return false;
+      if (!JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "forwardUnit")))) return false;
+      if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "mixWithOthers")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes")))) return false;
       return true;
     }
   };

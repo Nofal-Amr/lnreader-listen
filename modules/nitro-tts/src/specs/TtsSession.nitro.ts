@@ -1,5 +1,6 @@
 import type { HybridObject } from 'react-native-nitro-modules';
 import type { TtsChapter } from '../types/TtsChapter';
+import type { TtsSleepTimer, TtsSleepTimerState } from '../types/TtsSleepTimer';
 import type { ListenerSubscription } from '../types/ListenerSubscription';
 import type { TtsMetadata } from '../types/TtsMetadata';
 import type { TtsParagraph } from '../types/TtsParagraph';
@@ -56,6 +57,17 @@ export interface TtsSession
 
   /** Drops chapters queued with {@linkcode TtsSession.appendChapter}. */
   clearUpcoming(): Promise<void>;
+
+  /** Starts or replaces the sleep timer. */
+  setSleepTimer(timer: TtsSleepTimer): Promise<void>;
+
+  /** Cancels the sleep timer. */
+  cancelSleepTimer(): Promise<void>;
+
+  /** Observes sleep timer changes (about once a second while active). */
+  addOnSleepTimerChangedListener(
+    listener: (state: TtsSleepTimerState) => void,
+  ): ListenerSubscription;
 
   /** Observes playback advancing into a queued chapter; receives its id. */
   addOnChapterChangedListener(

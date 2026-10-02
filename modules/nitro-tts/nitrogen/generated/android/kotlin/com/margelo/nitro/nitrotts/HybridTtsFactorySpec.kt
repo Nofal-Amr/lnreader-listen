@@ -40,6 +40,10 @@ abstract class HybridTtsFactorySpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun getVoices(engineName: String?): Promise<Array<TtsVoice>>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun previewVoice(text: String, rate: Double, pitch: Double, engineName: String?, voiceIdentifier: String?): Promise<Unit>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

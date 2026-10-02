@@ -14,6 +14,10 @@ namespace margelo::nitro::nitrotts { class HybridTtsFactorySpec; }
 namespace margelo::nitro::nitrotts { class HybridTtsSessionSpec; }
 // Forward declaration of `ListenerSubscription` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct ListenerSubscription; }
+// Forward declaration of `TtsBreakKind` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsBreakKind; }
+// Forward declaration of `TtsBreak` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsBreak; }
 // Forward declaration of `TtsEngine` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsEngine; }
 // Forward declaration of `TtsParagraph` to properly resolve imports.
@@ -22,6 +26,12 @@ namespace margelo::nitro::nitrotts { struct TtsParagraph; }
 namespace margelo::nitro::nitrotts { enum class TtsPlaybackState; }
 // Forward declaration of `TtsProgress` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsProgress; }
+// Forward declaration of `TtsSkipUnit` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSkipUnit; }
+// Forward declaration of `TtsSleepTimerMode` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSleepTimerMode; }
+// Forward declaration of `TtsSleepTimerState` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsSleepTimerState; }
 // Forward declaration of `TtsVoice` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsVoice; }
 
@@ -35,10 +45,15 @@ namespace NitroTts { class HybridTtsSessionSpec_cxx; }
 #include "HybridTtsFactorySpec.hpp"
 #include "HybridTtsSessionSpec.hpp"
 #include "ListenerSubscription.hpp"
+#include "TtsBreak.hpp"
+#include "TtsBreakKind.hpp"
 #include "TtsEngine.hpp"
 #include "TtsParagraph.hpp"
 #include "TtsPlaybackState.hpp"
 #include "TtsProgress.hpp"
+#include "TtsSkipUnit.hpp"
+#include "TtsSleepTimerMode.hpp"
+#include "TtsSleepTimerState.hpp"
 #include "TtsVoice.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
@@ -229,6 +244,40 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     return Func_void_std__vector_TtsVoice__Wrapper(std::move(value));
   }
   
+  // pragma MARK: std::shared_ptr<Promise<void>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<void>>`.
+   */
+  using std__shared_ptr_Promise_void__ = std::shared_ptr<Promise<void>>;
+  inline std::shared_ptr<Promise<void>> create_std__shared_ptr_Promise_void__() noexcept {
+    return Promise<void>::create();
+  }
+  inline PromiseHolder<void> wrap_std__shared_ptr_Promise_void__(std::shared_ptr<Promise<void>> promise) noexcept {
+    return PromiseHolder<void>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void()>
+  /**
+   * Specialized version of `std::function<void()>`.
+   */
+  using Func_void = std::function<void()>;
+  /**
+   * Wrapper class for a `std::function<void()>`, this can be used from Swift.
+   */
+  class Func_void_Wrapper final {
+  public:
+    explicit Func_void_Wrapper(std::function<void()>&& func): _function(std::make_unique<std::function<void()>>(std::move(func))) {}
+    inline void call() const noexcept {
+      _function->operator()();
+    }
+  private:
+    std::unique_ptr<std::function<void()>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
+    return Func_void_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::shared_ptr<HybridTtsFactorySpec>
   /**
    * Specialized version of `std::shared_ptr<HybridTtsFactorySpec>`.
@@ -268,38 +317,39 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     return Result<std::shared_ptr<Promise<std::vector<TtsVoice>>>>::withError(error);
   }
   
-  // pragma MARK: std::shared_ptr<Promise<void>>
-  /**
-   * Specialized version of `std::shared_ptr<Promise<void>>`.
-   */
-  using std__shared_ptr_Promise_void__ = std::shared_ptr<Promise<void>>;
-  inline std::shared_ptr<Promise<void>> create_std__shared_ptr_Promise_void__() noexcept {
-    return Promise<void>::create();
+  // pragma MARK: Result<std::shared_ptr<Promise<void>>>
+  using Result_std__shared_ptr_Promise_void___ = Result<std::shared_ptr<Promise<void>>>;
+  inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::shared_ptr<Promise<void>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<void>>>::withValue(value);
   }
-  inline PromiseHolder<void> wrap_std__shared_ptr_Promise_void__(std::shared_ptr<Promise<void>> promise) noexcept {
-    return PromiseHolder<void>(std::move(promise));
+  inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<void>>>::withError(error);
   }
   
-  // pragma MARK: std::function<void()>
+  // pragma MARK: std::vector<TtsBreak>
   /**
-   * Specialized version of `std::function<void()>`.
+   * Specialized version of `std::vector<TtsBreak>`.
    */
-  using Func_void = std::function<void()>;
+  using std__vector_TtsBreak_ = std::vector<TtsBreak>;
+  inline std::vector<TtsBreak> create_std__vector_TtsBreak_(size_t size) noexcept {
+    std::vector<TtsBreak> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::optional<std::vector<TtsBreak>>
   /**
-   * Wrapper class for a `std::function<void()>`, this can be used from Swift.
+   * Specialized version of `std::optional<std::vector<TtsBreak>>`.
    */
-  class Func_void_Wrapper final {
-  public:
-    explicit Func_void_Wrapper(std::function<void()>&& func): _function(std::make_unique<std::function<void()>>(std::move(func))) {}
-    inline void call() const noexcept {
-      _function->operator()();
-    }
-  private:
-    std::unique_ptr<std::function<void()>> _function;
-  } SWIFT_NONCOPYABLE;
-  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
-    return Func_void_Wrapper(std::move(value));
+  using std__optional_std__vector_TtsBreak__ = std::optional<std::vector<TtsBreak>>;
+  inline std::optional<std::vector<TtsBreak>> create_std__optional_std__vector_TtsBreak__(const std::vector<TtsBreak>& value) noexcept {
+    return std::optional<std::vector<TtsBreak>>(value);
+  }
+  inline bool has_value_std__optional_std__vector_TtsBreak__(const std::optional<std::vector<TtsBreak>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::vector<TtsBreak> get_std__optional_std__vector_TtsBreak__(const std::optional<std::vector<TtsBreak>>& optional) noexcept {
+    return optional.value();
   }
   
   // pragma MARK: std::vector<TtsParagraph>
@@ -311,6 +361,73 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     std::vector<TtsParagraph> vector;
     vector.reserve(size);
     return vector;
+  }
+  
+  // pragma MARK: std::optional<double>
+  /**
+   * Specialized version of `std::optional<double>`.
+   */
+  using std__optional_double_ = std::optional<double>;
+  inline std::optional<double> create_std__optional_double_(const double& value) noexcept {
+    return std::optional<double>(value);
+  }
+  inline bool has_value_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<TtsSkipUnit>
+  /**
+   * Specialized version of `std::optional<TtsSkipUnit>`.
+   */
+  using std__optional_TtsSkipUnit_ = std::optional<TtsSkipUnit>;
+  inline std::optional<TtsSkipUnit> create_std__optional_TtsSkipUnit_(const TtsSkipUnit& value) noexcept {
+    return std::optional<TtsSkipUnit>(value);
+  }
+  inline bool has_value_std__optional_TtsSkipUnit_(const std::optional<TtsSkipUnit>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline TtsSkipUnit get_std__optional_TtsSkipUnit_(const std::optional<TtsSkipUnit>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<bool>
+  /**
+   * Specialized version of `std::optional<bool>`.
+   */
+  using std__optional_bool_ = std::optional<bool>;
+  inline std::optional<bool> create_std__optional_bool_(const bool& value) noexcept {
+    return std::optional<bool>(value);
+  }
+  inline bool has_value_std__optional_bool_(const std::optional<bool>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline bool get_std__optional_bool_(const std::optional<bool>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const TtsSleepTimerState& /* state */)>
+  /**
+   * Specialized version of `std::function<void(const TtsSleepTimerState&)>`.
+   */
+  using Func_void_TtsSleepTimerState = std::function<void(const TtsSleepTimerState& /* state */)>;
+  /**
+   * Wrapper class for a `std::function<void(const TtsSleepTimerState& / * state * /)>`, this can be used from Swift.
+   */
+  class Func_void_TtsSleepTimerState_Wrapper final {
+  public:
+    explicit Func_void_TtsSleepTimerState_Wrapper(std::function<void(const TtsSleepTimerState& /* state */)>&& func): _function(std::make_unique<std::function<void(const TtsSleepTimerState& /* state */)>>(std::move(func))) {}
+    inline void call(TtsSleepTimerState state) const noexcept {
+      _function->operator()(state);
+    }
+  private:
+    std::unique_ptr<std::function<void(const TtsSleepTimerState& /* state */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_TtsSleepTimerState create_Func_void_TtsSleepTimerState(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_TtsSleepTimerState_Wrapper wrap_Func_void_TtsSleepTimerState(Func_void_TtsSleepTimerState value) noexcept {
+    return Func_void_TtsSleepTimerState_Wrapper(std::move(value));
   }
   
   // pragma MARK: std::function<void(const std::string& /* chapterId */)>
@@ -377,15 +494,6 @@ namespace margelo::nitro::nitrotts::bridge::swift {
   Func_void_TtsProgress create_Func_void_TtsProgress(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_TtsProgress_Wrapper wrap_Func_void_TtsProgress(Func_void_TtsProgress value) noexcept {
     return Func_void_TtsProgress_Wrapper(std::move(value));
-  }
-  
-  // pragma MARK: Result<std::shared_ptr<Promise<void>>>
-  using Result_std__shared_ptr_Promise_void___ = Result<std::shared_ptr<Promise<void>>>;
-  inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::shared_ptr<Promise<void>>& value) noexcept {
-    return Result<std::shared_ptr<Promise<void>>>::withValue(value);
-  }
-  inline Result_std__shared_ptr_Promise_void___ create_Result_std__shared_ptr_Promise_void___(const std::exception_ptr& error) noexcept {
-    return Result<std::shared_ptr<Promise<void>>>::withError(error);
   }
   
   // pragma MARK: Result<ListenerSubscription>

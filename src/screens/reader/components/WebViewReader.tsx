@@ -28,8 +28,11 @@ import { useChapterContext } from '../ChapterContext';
 import { ReaderSearchResult } from '../types';
 import { useTtsSession } from '../hooks/useTtsSession';
 import { listenQueue } from '@services/listen/ListenQueue';
+import {
+  areTtsSettingsEqual,
+  toNativeTtsSettings,
+} from '@services/listen/ttsSettings';
 import { getChapter as getDbChapter } from '@database/queries/ChapterQueries';
-import type { TtsSettings } from '@modules/nitro-tts';
 import { ChapterInfo } from '@database/types';
 import { Dialog } from '@components/Dialog';
 import { TextInput } from 'react-native-paper';
@@ -64,32 +67,6 @@ const onLogMessage = (payload: { nativeEvent: { data: string } }) => {
     }
   }
 };
-
-/** Checks whether two TTS settings objects are equal */
-const areTTSSettingsEqual = (
-  a: ChapterReaderSettings['tts'],
-  b: ChapterReaderSettings['tts'],
-) => {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return (
-    a.rate === b.rate &&
-    a.pitch === b.pitch &&
-    a.autoPageAdvance === b.autoPageAdvance &&
-    a.scrollToTop === b.scrollToTop &&
-    a.voice?.identifier === b.voice?.identifier &&
-    a.engine?.name === b.engine?.name
-  );
-};
-
-const toNativeTtsSettings = (
-  settings: ChapterReaderSettings['tts'],
-): TtsSettings => ({
-  engineName: settings?.engine?.name,
-  voiceIdentifier: settings?.voice?.identifier,
-  rate: settings?.rate ?? 1,
-  pitch: settings?.pitch ?? 1,
-});
 
 /**
  * The adjacent chapters are resolved after the chapter itself is on screen, so
@@ -271,7 +248,7 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
             initialChapterReaderSettings;
           setReaderSettings(newReaderSettings);
           if (
-            !areTTSSettingsEqual(
+            !areTtsSettingsEqual(
               readerSettingsRef.current.tts,
               newReaderSettings.tts,
             )

@@ -63,6 +63,7 @@ namespace margelo::nitro::nitrotts {
       virtual std::shared_ptr<Promise<std::shared_ptr<HybridTtsSessionSpec>>> createSession() = 0;
       virtual std::shared_ptr<Promise<std::vector<TtsEngine>>> getEngines() = 0;
       virtual std::shared_ptr<Promise<std::vector<TtsVoice>>> getVoices(const std::optional<std::string>& engineName) = 0;
+      virtual std::shared_ptr<Promise<void>> previewVoice(const std::string& text, double rate, double pitch, const std::optional<std::string>& engineName, const std::optional<std::string>& voiceIdentifier) = 0;
 
     protected:
       // Hybrid Setup

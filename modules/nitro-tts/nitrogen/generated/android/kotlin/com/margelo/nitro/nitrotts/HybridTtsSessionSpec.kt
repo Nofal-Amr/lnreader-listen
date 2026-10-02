@@ -73,6 +73,23 @@ abstract class HybridTtsSessionSpec: HybridObject() {
   @Keep
   abstract fun clearUpcoming(): Promise<Unit>
   
+  @DoNotStrip
+  @Keep
+  abstract fun setSleepTimer(timer: TtsSleepTimer): Promise<Unit>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun cancelSleepTimer(): Promise<Unit>
+  
+  abstract fun addOnSleepTimerChangedListener(listener: (state: TtsSleepTimerState) -> Unit): ListenerSubscription
+  
+  @DoNotStrip
+  @Keep
+  private fun addOnSleepTimerChangedListener_cxx(listener: Func_void_TtsSleepTimerState): ListenerSubscription {
+    val __result = addOnSleepTimerChangedListener(listener)
+    return __result
+  }
+  
   abstract fun addOnChapterChangedListener(listener: (chapterId: String) -> Unit): ListenerSubscription
   
   @DoNotStrip

@@ -25,6 +25,9 @@ namespace margelo::nitro::nitrotts {
       prototype.registerHybridMethod("updateSettings", &HybridTtsSessionSpec::updateSettings);
       prototype.registerHybridMethod("appendChapter", &HybridTtsSessionSpec::appendChapter);
       prototype.registerHybridMethod("clearUpcoming", &HybridTtsSessionSpec::clearUpcoming);
+      prototype.registerHybridMethod("setSleepTimer", &HybridTtsSessionSpec::setSleepTimer);
+      prototype.registerHybridMethod("cancelSleepTimer", &HybridTtsSessionSpec::cancelSleepTimer);
+      prototype.registerHybridMethod("addOnSleepTimerChangedListener", &HybridTtsSessionSpec::addOnSleepTimerChangedListener);
       prototype.registerHybridMethod("addOnChapterChangedListener", &HybridTtsSessionSpec::addOnChapterChangedListener);
       prototype.registerHybridMethod("addOnStateChangedListener", &HybridTtsSessionSpec::addOnStateChangedListener);
       prototype.registerHybridMethod("addOnProgressChangedListener", &HybridTtsSessionSpec::addOnProgressChangedListener);

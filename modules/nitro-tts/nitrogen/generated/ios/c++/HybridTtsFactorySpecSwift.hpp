@@ -102,6 +102,14 @@ namespace margelo::nitro::nitrotts {
       auto __value = std::move(__result.value());
       return __value;
     }
+    inline std::shared_ptr<Promise<void>> previewVoice(const std::string& text, double rate, double pitch, const std::optional<std::string>& engineName, const std::optional<std::string>& voiceIdentifier) override {
+      auto __result = _swiftPart.previewVoice(text, std::forward<decltype(rate)>(rate), std::forward<decltype(pitch)>(pitch), engineName, voiceIdentifier);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
 
   private:
     NitroTts::HybridTtsFactorySpec_cxx _swiftPart;

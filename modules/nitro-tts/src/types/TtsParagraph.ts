@@ -1,3 +1,5 @@
+import type { TtsBreak } from './TtsBreak';
+
 /**
  * One independently navigable paragraph in a TTS queue.
  *
@@ -8,4 +10,6 @@ export interface TtsParagraph {
   id: string;
   /** Text sent to the selected native speech voice. */
   text: string;
+  /** Clause/sentence starts inside `text`, ascending. */
+  breaks?: TtsBreak[];
 }

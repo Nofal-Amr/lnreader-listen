@@ -10,6 +10,8 @@
 #include <fbjni/fbjni.h>
 #include "TtsSettings.hpp"
 
+#include "JTtsSkipUnit.hpp"
+#include "TtsSkipUnit.hpp"
 #include <optional>
 #include <string>
 
@@ -40,11 +42,35 @@ namespace margelo::nitro::nitrotts {
       double rate = this->getFieldValue(fieldRate);
       static const auto fieldPitch = clazz->getField<double>("pitch");
       double pitch = this->getFieldValue(fieldPitch);
+      static const auto fieldPauseCommaMs = clazz->getField<jni::JDouble>("pauseCommaMs");
+      jni::local_ref<jni::JDouble> pauseCommaMs = this->getFieldValue(fieldPauseCommaMs);
+      static const auto fieldPauseSentenceMs = clazz->getField<jni::JDouble>("pauseSentenceMs");
+      jni::local_ref<jni::JDouble> pauseSentenceMs = this->getFieldValue(fieldPauseSentenceMs);
+      static const auto fieldPauseParagraphMs = clazz->getField<jni::JDouble>("pauseParagraphMs");
+      jni::local_ref<jni::JDouble> pauseParagraphMs = this->getFieldValue(fieldPauseParagraphMs);
+      static const auto fieldPauseChapterMs = clazz->getField<jni::JDouble>("pauseChapterMs");
+      jni::local_ref<jni::JDouble> pauseChapterMs = this->getFieldValue(fieldPauseChapterMs);
+      static const auto fieldRewindUnit = clazz->getField<JTtsSkipUnit>("rewindUnit");
+      jni::local_ref<JTtsSkipUnit> rewindUnit = this->getFieldValue(fieldRewindUnit);
+      static const auto fieldForwardUnit = clazz->getField<JTtsSkipUnit>("forwardUnit");
+      jni::local_ref<JTtsSkipUnit> forwardUnit = this->getFieldValue(fieldForwardUnit);
+      static const auto fieldMixWithOthers = clazz->getField<jni::JBoolean>("mixWithOthers");
+      jni::local_ref<jni::JBoolean> mixWithOthers = this->getFieldValue(fieldMixWithOthers);
+      static const auto fieldAutoPauseMinutes = clazz->getField<jni::JDouble>("autoPauseMinutes");
+      jni::local_ref<jni::JDouble> autoPauseMinutes = this->getFieldValue(fieldAutoPauseMinutes);
       return TtsSettings(
         engineName != nullptr ? std::make_optional(engineName->toStdString()) : std::nullopt,
         voiceIdentifier != nullptr ? std::make_optional(voiceIdentifier->toStdString()) : std::nullopt,
         rate,
-        pitch
+        pitch,
+        pauseCommaMs != nullptr ? std::make_optional(pauseCommaMs->value()) : std::nullopt,
+        pauseSentenceMs != nullptr ? std::make_optional(pauseSentenceMs->value()) : std::nullopt,
+        pauseParagraphMs != nullptr ? std::make_optional(pauseParagraphMs->value()) : std::nullopt,
+        pauseChapterMs != nullptr ? std::make_optional(pauseChapterMs->value()) : std::nullopt,
+        rewindUnit != nullptr ? std::make_optional(rewindUnit->toCpp()) : std::nullopt,
+        forwardUnit != nullptr ? std::make_optional(forwardUnit->toCpp()) : std::nullopt,
+        mixWithOthers != nullptr ? std::make_optional(static_cast<bool>(mixWithOthers->value())) : std::nullopt,
+        autoPauseMinutes != nullptr ? std::make_optional(autoPauseMinutes->value()) : std::nullopt
       );
     }
 
@@ -54,7 +80,7 @@ namespace margelo::nitro::nitrotts {
      */
     [[maybe_unused]]
     static jni::local_ref<JTtsSettings::javaobject> fromCpp(const TtsSettings& value) {
-      using JSignature = JTtsSettings(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, double);
+      using JSignature = JTtsSettings(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<JTtsSkipUnit>, jni::alias_ref<JTtsSkipUnit>, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -62,7 +88,15 @@ namespace margelo::nitro::nitrotts {
         value.engineName.has_value() ? jni::make_jstring(value.engineName.value()) : nullptr,
         value.voiceIdentifier.has_value() ? jni::make_jstring(value.voiceIdentifier.value()) : nullptr,
         value.rate,
-        value.pitch
+        value.pitch,
+        value.pauseCommaMs.has_value() ? jni::JDouble::valueOf(value.pauseCommaMs.value()) : nullptr,
+        value.pauseSentenceMs.has_value() ? jni::JDouble::valueOf(value.pauseSentenceMs.value()) : nullptr,
+        value.pauseParagraphMs.has_value() ? jni::JDouble::valueOf(value.pauseParagraphMs.value()) : nullptr,
+        value.pauseChapterMs.has_value() ? jni::JDouble::valueOf(value.pauseChapterMs.value()) : nullptr,
+        value.rewindUnit.has_value() ? JTtsSkipUnit::fromCpp(value.rewindUnit.value()) : nullptr,
+        value.forwardUnit.has_value() ? JTtsSkipUnit::fromCpp(value.forwardUnit.value()) : nullptr,
+        value.mixWithOthers.has_value() ? jni::JBoolean::valueOf(value.mixWithOthers.value()) : nullptr,
+        value.autoPauseMinutes.has_value() ? jni::JDouble::valueOf(value.autoPauseMinutes.value()) : nullptr
       );
     }
   };

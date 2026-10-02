@@ -18,8 +18,20 @@ public extension TtsParagraph {
   /**
    * Create a new instance of `TtsParagraph`.
    */
-  init(id: String, text: String) {
-    self.init(std.string(id), std.string(text))
+  init(id: String, text: String, breaks: [TtsBreak]?) {
+    self.init(std.string(id), std.string(text), { () -> bridge.std__optional_std__vector_TtsBreak__ in
+      if let __unwrappedValue = breaks {
+        return bridge.create_std__optional_std__vector_TtsBreak__({ () -> bridge.std__vector_TtsBreak_ in
+          var __vector = bridge.create_std__vector_TtsBreak_(__unwrappedValue.count)
+          for __item in __unwrappedValue {
+            __vector.push_back(__item)
+          }
+          return __vector
+        }())
+      } else {
+        return .init()
+      }
+    }())
   }
 
   @inline(__always)
@@ -30,5 +42,17 @@ public extension TtsParagraph {
   @inline(__always)
   var text: String {
     return String(self.__text)
+  }
+  
+  @inline(__always)
+  var breaks: [TtsBreak]? {
+    return { () -> [TtsBreak]? in
+      if bridge.has_value_std__optional_std__vector_TtsBreak__(self.__breaks) {
+        let __unwrapped = bridge.get_std__optional_std__vector_TtsBreak__(self.__breaks)
+        return __unwrapped.map({ __item in __item })
+      } else {
+        return nil
+      }
+    }()
   }
 }

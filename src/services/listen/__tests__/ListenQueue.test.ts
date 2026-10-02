@@ -53,7 +53,7 @@ describe('ListenQueue', () => {
     await flush();
     expect(session.appendChapter).toHaveBeenCalledWith({
       chapterId: '2',
-      paragraphs: [{ id: '0', text: 'Text 2.' }],
+      paragraphs: [{ id: '0', text: 'Text 2.', breaks: [] }],
       metadata: {
         novelName: 'N',
         chapterName: 'C2',

@@ -26,6 +26,7 @@ namespace margelo::nitro::nitrotts { struct TtsVoice; }
 #include "TtsVoice.hpp"
 #include "JTtsVoice.hpp"
 #include <optional>
+#include <NitroModules/JUnit.hpp>
 
 namespace margelo::nitro::nitrotts {
 
@@ -118,6 +119,21 @@ namespace margelo::nitro::nitrotts {
           }
           return __vector;
         }(__result));
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<void>> JHybridTtsFactorySpec::previewVoice(const std::string& text, double rate, double pitch, const std::optional<std::string>& engineName, const std::optional<std::string>& voiceIdentifier) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* text */, double /* rate */, double /* pitch */, jni::alias_ref<jni::JString> /* engineName */, jni::alias_ref<jni::JString> /* voiceIdentifier */)>("previewVoice");
+    auto __result = method(_javaPart, jni::make_jstring(text), rate, pitch, engineName.has_value() ? jni::make_jstring(engineName.value()) : nullptr, voiceIdentifier.has_value() ? jni::make_jstring(voiceIdentifier.value()) : nullptr);
+    return [&]() {
+      auto __promise = Promise<void>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {
+        __promise->resolve();
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
         jni::JniException __jniError(__throwable);

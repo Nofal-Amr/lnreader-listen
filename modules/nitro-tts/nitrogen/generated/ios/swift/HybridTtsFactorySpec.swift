@@ -16,6 +16,7 @@ public protocol HybridTtsFactorySpec_protocol: HybridObject {
   func createSession() throws -> Promise<(any HybridTtsSessionSpec)>
   func getEngines() throws -> Promise<[TtsEngine]>
   func getVoices(engineName: String?) throws -> Promise<[TtsVoice]>
+  func previewVoice(text: String, rate: Double, pitch: Double, engineName: String?, voiceIdentifier: String?) throws -> Promise<Void>
 }
 
 public extension HybridTtsFactorySpec_protocol {

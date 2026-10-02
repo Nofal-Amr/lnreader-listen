@@ -53,6 +53,18 @@ final class HybridTtsSession : HybridTtsSessionSpec() {
     override fun clearUpcoming(): Promise<Unit> =
         MainThreadPromise.run(TtsPlaybackStore::clearUpcoming)
 
+    override fun setSleepTimer(timer: TtsSleepTimer): Promise<Unit> =
+        MainThreadPromise.run { TtsPlaybackStore.setSleepTimer(timer) }
+
+    override fun cancelSleepTimer(): Promise<Unit> =
+        MainThreadPromise.run(TtsPlaybackStore::cancelSleepTimer)
+
+    override fun addOnSleepTimerChangedListener(
+        listener: (state: TtsSleepTimerState) -> Unit,
+    ): ListenerSubscription {
+        return ListenerSubscription(TtsPlaybackStore.addSleepTimerListener(listener))
+    }
+
     override fun addOnChapterChangedListener(
         listener: (chapterId: String) -> Unit,
     ): ListenerSubscription {

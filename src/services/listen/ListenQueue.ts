@@ -7,6 +7,7 @@ import {
 } from '@database/queries/ChapterQueries';
 import type { ChapterInfo } from '@database/types';
 
+import { computeBreaks } from './computeBreaks';
 import { extractTtsParagraphs } from './extractTtsParagraphs';
 import { loadChapterHtml } from './loadChapterHtml';
 
@@ -80,6 +81,7 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
         paragraphs: paragraphs.map((text, index) => ({
           id: String(index),
           text,
+          breaks: computeBreaks(text),
         })),
         metadata: {
           novelName: novel.name,

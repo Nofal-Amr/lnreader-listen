@@ -1,3 +1,5 @@
+import type { TtsSkipUnit } from './TtsSkipUnit';
+
 /**
  * Native speech preferences applied to every queued paragraph.
  *
@@ -15,4 +17,20 @@ export interface TtsSettings {
   rate: number;
   /** Voice-pitch multiplier selected by the reader. */
   pitch: number;
+  /** Silence after a clause (comma, semicolon, dash). 0 keeps clauses joined. */
+  pauseCommaMs?: number;
+  /** Silence after a sentence. */
+  pauseSentenceMs?: number;
+  /** Silence after a paragraph. */
+  pauseParagraphMs?: number;
+  /** Silence between chapters. */
+  pauseChapterMs?: number;
+  /** How far rewind moves. Defaults to `clause`. */
+  rewindUnit?: TtsSkipUnit;
+  /** How far forward moves. Defaults to `sentence`. */
+  forwardUnit?: TtsSkipUnit;
+  /** Play without taking audio focus, alongside other apps. */
+  mixWithOthers?: boolean;
+  /** Pause after this many minutes without user interaction; 0 disables. */
+  autoPauseMinutes?: number;
 }

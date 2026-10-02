@@ -64,6 +64,20 @@ final class HybridTtsSession: HybridTtsSessionSpec {
     return Promise.resolved()
   }
 
+  func setSleepTimer(timer: TtsSleepTimer) throws -> Promise<Void> {
+    return Promise.resolved()
+  }
+
+  func cancelSleepTimer() throws -> Promise<Void> {
+    return Promise.resolved()
+  }
+
+  func addOnSleepTimerChangedListener(
+    listener: @escaping (_ state: TtsSleepTimerState) -> Void
+  ) throws -> ListenerSubscription {
+    return ListenerSubscription(remove: {})
+  }
+
   func addOnChapterChangedListener(
     listener: @escaping (_ chapterId: String) -> Void
   ) throws -> ListenerSubscription {

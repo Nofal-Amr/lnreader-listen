@@ -14,14 +14,26 @@ namespace NitroTts { class HybridTtsSessionSpec_cxx; }
 
 // Forward declaration of `TtsParagraph` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsParagraph; }
+// Forward declaration of `TtsBreak` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsBreak; }
+// Forward declaration of `TtsBreakKind` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsBreakKind; }
 // Forward declaration of `TtsMetadata` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsMetadata; }
 // Forward declaration of `TtsSettings` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsSettings; }
+// Forward declaration of `TtsSkipUnit` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSkipUnit; }
 // Forward declaration of `TtsChapter` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsChapter; }
+// Forward declaration of `TtsSleepTimer` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsSleepTimer; }
+// Forward declaration of `TtsSleepTimerMode` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSleepTimerMode; }
 // Forward declaration of `ListenerSubscription` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct ListenerSubscription; }
+// Forward declaration of `TtsSleepTimerState` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsSleepTimerState; }
 // Forward declaration of `TtsPlaybackState` to properly resolve imports.
 namespace margelo::nitro::nitrotts { enum class TtsPlaybackState; }
 // Forward declaration of `TtsProgress` to properly resolve imports.
@@ -31,12 +43,18 @@ namespace margelo::nitro::nitrotts { struct TtsProgress; }
 #include "TtsParagraph.hpp"
 #include <vector>
 #include <string>
-#include "TtsMetadata.hpp"
+#include "TtsBreak.hpp"
 #include <optional>
+#include "TtsBreakKind.hpp"
+#include "TtsMetadata.hpp"
 #include "TtsSettings.hpp"
+#include "TtsSkipUnit.hpp"
 #include "TtsChapter.hpp"
+#include "TtsSleepTimer.hpp"
+#include "TtsSleepTimerMode.hpp"
 #include "ListenerSubscription.hpp"
 #include <functional>
+#include "TtsSleepTimerState.hpp"
 #include "TtsPlaybackState.hpp"
 #include "TtsProgress.hpp"
 
@@ -172,6 +190,30 @@ namespace margelo::nitro::nitrotts {
     }
     inline std::shared_ptr<Promise<void>> clearUpcoming() override {
       auto __result = _swiftPart.clearUpcoming();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<void>> setSleepTimer(const TtsSleepTimer& timer) override {
+      auto __result = _swiftPart.setSleepTimer(std::forward<decltype(timer)>(timer));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<void>> cancelSleepTimer() override {
+      auto __result = _swiftPart.cancelSleepTimer();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline ListenerSubscription addOnSleepTimerChangedListener(const std::function<void(const TtsSleepTimerState& /* state */)>& listener) override {
+      auto __result = _swiftPart.addOnSleepTimerChangedListener(listener);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

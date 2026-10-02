@@ -10,8 +10,12 @@
 #include <fbjni/fbjni.h>
 #include "TtsChapter.hpp"
 
+#include "JTtsBreak.hpp"
+#include "JTtsBreakKind.hpp"
 #include "JTtsMetadata.hpp"
 #include "JTtsParagraph.hpp"
+#include "TtsBreak.hpp"
+#include "TtsBreakKind.hpp"
 #include "TtsMetadata.hpp"
 #include "TtsParagraph.hpp"
 #include <optional>

@@ -27,4 +27,16 @@ export interface TtsFactory
    * when omitted. iOS ignores `engineName` and lists system voices.
    */
   getVoices(engineName?: string): Promise<TtsVoice[]>;
+
+  /**
+   * Speaks `text` once with the given engine and voice, independently of the
+   * playback session. Resolves when speech finishes.
+   */
+  previewVoice(
+    text: string,
+    rate: number,
+    pitch: number,
+    engineName?: string,
+    voiceIdentifier?: string,
+  ): Promise<void>;
 }

@@ -37,8 +37,8 @@ describe('useTtsSession', () => {
 
     expect(session.load).toHaveBeenCalledWith(
       [
-        { id: '0', text: 'First paragraph' },
-        { id: '1', text: 'Second paragraph' },
+        { id: '0', text: 'First paragraph', breaks: [] },
+        { id: '1', text: 'Second paragraph', breaks: [] },
       ],
       1,
       {

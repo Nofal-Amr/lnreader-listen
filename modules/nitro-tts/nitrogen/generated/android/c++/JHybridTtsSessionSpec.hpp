@@ -65,6 +65,9 @@ namespace margelo::nitro::nitrotts {
     std::shared_ptr<Promise<void>> updateSettings(const TtsSettings& settings) override;
     std::shared_ptr<Promise<void>> appendChapter(const TtsChapter& chapter) override;
     std::shared_ptr<Promise<void>> clearUpcoming() override;
+    std::shared_ptr<Promise<void>> setSleepTimer(const TtsSleepTimer& timer) override;
+    std::shared_ptr<Promise<void>> cancelSleepTimer() override;
+    ListenerSubscription addOnSleepTimerChangedListener(const std::function<void(const TtsSleepTimerState& /* state */)>& listener) override;
     ListenerSubscription addOnChapterChangedListener(const std::function<void(const std::string& /* chapterId */)>& listener) override;
     ListenerSubscription addOnStateChangedListener(const std::function<void(TtsPlaybackState /* state */)>& listener) override;
     ListenerSubscription addOnProgressChangedListener(const std::function<void(const TtsProgress& /* progress */)>& listener) override;

@@ -12,6 +12,9 @@ const mockTtsSession = {
   appendChapter: jest.fn(async () => undefined),
   clearUpcoming: jest.fn(async () => undefined),
   addOnChapterChangedListener: jest.fn(() => mockSubscription),
+  setSleepTimer: jest.fn(async () => undefined),
+  cancelSleepTimer: jest.fn(async () => undefined),
+  addOnSleepTimerChangedListener: jest.fn(() => mockSubscription),
   addOnStateChangedListener: jest.fn(() => mockSubscription),
   addOnProgressChangedListener: jest.fn(() => mockSubscription),
   addOnErrorListener: jest.fn(() => mockSubscription),
@@ -26,6 +29,7 @@ jest.mock('react-native-nitro-modules', () => ({
           createSession: jest.fn(async () => mockTtsSession),
           getEngines: jest.fn(async () => []),
           getVoices: jest.fn(async () => []),
+          previewVoice: jest.fn(async () => undefined),
         };
       }
       return {

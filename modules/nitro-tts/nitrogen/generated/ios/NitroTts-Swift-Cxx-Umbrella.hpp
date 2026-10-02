@@ -14,6 +14,10 @@ namespace margelo::nitro::nitrotts { class HybridTtsFactorySpec; }
 namespace margelo::nitro::nitrotts { class HybridTtsSessionSpec; }
 // Forward declaration of `ListenerSubscription` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct ListenerSubscription; }
+// Forward declaration of `TtsBreakKind` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsBreakKind; }
+// Forward declaration of `TtsBreak` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsBreak; }
 // Forward declaration of `TtsChapter` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsChapter; }
 // Forward declaration of `TtsEngine` to properly resolve imports.
@@ -28,6 +32,14 @@ namespace margelo::nitro::nitrotts { enum class TtsPlaybackState; }
 namespace margelo::nitro::nitrotts { struct TtsProgress; }
 // Forward declaration of `TtsSettings` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsSettings; }
+// Forward declaration of `TtsSkipUnit` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSkipUnit; }
+// Forward declaration of `TtsSleepTimerMode` to properly resolve imports.
+namespace margelo::nitro::nitrotts { enum class TtsSleepTimerMode; }
+// Forward declaration of `TtsSleepTimerState` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsSleepTimerState; }
+// Forward declaration of `TtsSleepTimer` to properly resolve imports.
+namespace margelo::nitro::nitrotts { struct TtsSleepTimer; }
 // Forward declaration of `TtsVoice` to properly resolve imports.
 namespace margelo::nitro::nitrotts { struct TtsVoice; }
 
@@ -35,6 +47,8 @@ namespace margelo::nitro::nitrotts { struct TtsVoice; }
 #include "HybridTtsFactorySpec.hpp"
 #include "HybridTtsSessionSpec.hpp"
 #include "ListenerSubscription.hpp"
+#include "TtsBreak.hpp"
+#include "TtsBreakKind.hpp"
 #include "TtsChapter.hpp"
 #include "TtsEngine.hpp"
 #include "TtsMetadata.hpp"
@@ -42,6 +56,10 @@ namespace margelo::nitro::nitrotts { struct TtsVoice; }
 #include "TtsPlaybackState.hpp"
 #include "TtsProgress.hpp"
 #include "TtsSettings.hpp"
+#include "TtsSkipUnit.hpp"
+#include "TtsSleepTimer.hpp"
+#include "TtsSleepTimerMode.hpp"
+#include "TtsSleepTimerState.hpp"
 #include "TtsVoice.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>

@@ -63,6 +63,14 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroTts::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridTtsFactorySpec>
   std::shared_ptr<HybridTtsFactorySpec> create_std__shared_ptr_HybridTtsFactorySpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroTts::HybridTtsFactorySpec_cxx swiftPart = NitroTts::HybridTtsFactorySpec_cxx::fromUnsafe(swiftUnsafePointer);
@@ -79,11 +87,11 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     return swiftPart.toUnsafe();
   }
   
-  // pragma MARK: std::function<void()>
-  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroTts::Func_void::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
-      swiftClosure.call();
+  // pragma MARK: std::function<void(const TtsSleepTimerState& /* state */)>
+  Func_void_TtsSleepTimerState create_Func_void_TtsSleepTimerState(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroTts::Func_void_TtsSleepTimerState::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const TtsSleepTimerState& state) mutable -> void {
+      swiftClosure.call(state);
     };
   }
   

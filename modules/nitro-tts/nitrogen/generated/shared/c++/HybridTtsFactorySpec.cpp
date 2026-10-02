@@ -17,6 +17,7 @@ namespace margelo::nitro::nitrotts {
       prototype.registerHybridMethod("createSession", &HybridTtsFactorySpec::createSession);
       prototype.registerHybridMethod("getEngines", &HybridTtsFactorySpec::getEngines);
       prototype.registerHybridMethod("getVoices", &HybridTtsFactorySpec::getVoices);
+      prototype.registerHybridMethod("previewVoice", &HybridTtsFactorySpec::previewVoice);
     });
   }
 

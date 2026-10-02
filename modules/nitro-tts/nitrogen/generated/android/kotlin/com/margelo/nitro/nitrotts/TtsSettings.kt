@@ -29,7 +29,31 @@ data class TtsSettings(
   val rate: Double,
   @DoNotStrip
   @Keep
-  val pitch: Double
+  val pitch: Double,
+  @DoNotStrip
+  @Keep
+  val pauseCommaMs: Double?,
+  @DoNotStrip
+  @Keep
+  val pauseSentenceMs: Double?,
+  @DoNotStrip
+  @Keep
+  val pauseParagraphMs: Double?,
+  @DoNotStrip
+  @Keep
+  val pauseChapterMs: Double?,
+  @DoNotStrip
+  @Keep
+  val rewindUnit: TtsSkipUnit?,
+  @DoNotStrip
+  @Keep
+  val forwardUnit: TtsSkipUnit?,
+  @DoNotStrip
+  @Keep
+  val mixWithOthers: Boolean?,
+  @DoNotStrip
+  @Keep
+  val autoPauseMinutes: Double?
 ) {
   /* primary constructor */
 
@@ -40,6 +64,14 @@ data class TtsSettings(
       && Objects.deepEquals(this.voiceIdentifier, other.voiceIdentifier)
       && Objects.deepEquals(this.rate, other.rate)
       && Objects.deepEquals(this.pitch, other.pitch)
+      && Objects.deepEquals(this.pauseCommaMs, other.pauseCommaMs)
+      && Objects.deepEquals(this.pauseSentenceMs, other.pauseSentenceMs)
+      && Objects.deepEquals(this.pauseParagraphMs, other.pauseParagraphMs)
+      && Objects.deepEquals(this.pauseChapterMs, other.pauseChapterMs)
+      && Objects.deepEquals(this.rewindUnit, other.rewindUnit)
+      && Objects.deepEquals(this.forwardUnit, other.forwardUnit)
+      && Objects.deepEquals(this.mixWithOthers, other.mixWithOthers)
+      && Objects.deepEquals(this.autoPauseMinutes, other.autoPauseMinutes)
   }
 
   override fun hashCode(): Int {
@@ -47,7 +79,15 @@ data class TtsSettings(
       engineName,
       voiceIdentifier,
       rate,
-      pitch
+      pitch,
+      pauseCommaMs,
+      pauseSentenceMs,
+      pauseParagraphMs,
+      pauseChapterMs,
+      rewindUnit,
+      forwardUnit,
+      mixWithOthers,
+      autoPauseMinutes
     ).contentDeepHashCode()
   }
 
@@ -59,8 +99,8 @@ data class TtsSettings(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double): TtsSettings {
-      return TtsSettings(engineName, voiceIdentifier, rate, pitch)
+    private fun fromCpp(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double, pauseCommaMs: Double?, pauseSentenceMs: Double?, pauseParagraphMs: Double?, pauseChapterMs: Double?, rewindUnit: TtsSkipUnit?, forwardUnit: TtsSkipUnit?, mixWithOthers: Boolean?, autoPauseMinutes: Double?): TtsSettings {
+      return TtsSettings(engineName, voiceIdentifier, rate, pitch, pauseCommaMs, pauseSentenceMs, pauseParagraphMs, pauseChapterMs, rewindUnit, forwardUnit, mixWithOthers, autoPauseMinutes)
     }
   }
 }
