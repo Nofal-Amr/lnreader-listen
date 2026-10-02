@@ -71,7 +71,9 @@ export default function useTextModifications(
     }
     // Directly replace text in the WebView DOM to avoid full re-render
     injectJS(
-      `window.textRemover?.performReplace?.(${JSON.stringify(selectedTextForReplace)}, ${JSON.stringify(replacementText)}); true;`,
+      `window.textRemover?.performReplace?.(${JSON.stringify(
+        selectedTextForReplace,
+      )}, ${JSON.stringify(replacementText)}); true;`,
     );
     setReplaceModalVisible(false);
     return true;

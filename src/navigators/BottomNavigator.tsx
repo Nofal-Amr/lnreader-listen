@@ -17,6 +17,7 @@ import { BottomNavigatorParamList } from './types';
 import Icon from '@react-native-vector-icons/material-design-icons';
 import { MaterialDesignIconName } from '@type/icon';
 import { BottomTabBar } from '@components';
+import MiniPlayer from '@screens/player/MiniPlayer';
 
 const Tab = createBottomTabNavigator<BottomNavigatorParamList>();
 
@@ -65,12 +66,15 @@ const BottomNavigator = () => {
 
   const renderTabBar = useCallback(
     (props: any) => (
-      <BottomTabBar
-        {...props}
-        theme={theme}
-        showLabelsInNav={showLabelsInNav}
-        renderIcon={renderIcon}
-      />
+      <>
+        <MiniPlayer />
+        <BottomTabBar
+          {...props}
+          theme={theme}
+          showLabelsInNav={showLabelsInNav}
+          renderIcon={renderIcon}
+        />
+      </>
     ),
     [theme, showLabelsInNav, renderIcon],
   );

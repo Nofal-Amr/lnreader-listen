@@ -138,8 +138,9 @@ export const widen = (text: string, s: number, e: number): Span => {
   const n = text.length;
   let e2 = e;
   while (e2 < n && ' \t\u00a0'.includes(text[e2])) e2 += 1;
-  if (e2 > e && (s === 0 || ' \t\u00a0\n'.includes(text[s - 1])))
-    {return [s, e2];}
+  if (e2 > e && (s === 0 || ' \t\u00a0\n'.includes(text[s - 1]))) {
+    return [s, e2];
+  }
   if (e2 === n) {
     let s2 = s;
     while (s2 > 0 && ' \t\u00a0'.includes(text[s2 - 1])) s2 -= 1;

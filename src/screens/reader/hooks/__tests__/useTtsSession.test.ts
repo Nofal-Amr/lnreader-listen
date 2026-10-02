@@ -3,6 +3,12 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { Tts, type TtsSession } from '@modules/nitro-tts';
 import { useTtsSession } from '../useTtsSession';
 
+// The real shared session is created once per app; tests need a fresh one.
+jest.mock('@services/listen/sharedSession', () => ({
+  getSharedSession: () =>
+    jest.requireActual('@modules/nitro-tts').Tts.createSession(),
+}));
+
 const getNativeSession = async (): Promise<jest.Mocked<TtsSession>> => {
   const createSession = Tts.createSession as jest.Mock;
   await waitFor(() => expect(createSession).toHaveBeenCalled());
@@ -82,8 +88,24 @@ describe('useTtsSession', () => {
     });
   });
 
-  it('stops the native session and removes listeners on unmount', async () => {
+  it('keeps the shared session playing when the reader unmounts', async () => {
     const { unmount } = renderHook(useTtsSession);
+    const session = await getNativeSession();
+    await waitFor(() =>
+      expect(session.addOnErrorListener).toHaveBeenCalledTimes(1),
+    );
+    const subscription =
+      session.addOnStateChangedListener.mock.results[0].value;
+    unmount();
+
+    expect(subscription.remove).toHaveBeenCalled();
+    expect(session.stop).not.toHaveBeenCalled();
+  });
+
+  it('stops the session on unmount when asked (settings preview)', async () => {
+    const { unmount } = renderHook(() =>
+      useTtsSession({ stopOnUnmount: true }),
+    );
     const session = await getNativeSession();
     await waitFor(() =>
       expect(session.addOnErrorListener).toHaveBeenCalledTimes(1),

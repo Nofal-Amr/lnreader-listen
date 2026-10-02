@@ -62,6 +62,14 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
   let run = 0;
   let subscription: { remove(): void } | undefined;
   const listeners = new Set<(chapterId: number) => void>();
+  // Spoken text of recently queued chapters, for the player's follow-along view.
+  const queuedTexts = new Map<number, string[]>();
+  const rememberTexts = (id: number, texts: string[]) => {
+    queuedTexts.set(id, texts);
+    while (queuedTexts.size > 4) {
+      queuedTexts.delete(queuedTexts.keys().next().value as number);
+    }
+  };
 
   const queueAfter = async (from: ListenChapter, myRun: number) => {
     let cursor: ListenChapter | undefined = from;
@@ -82,6 +90,7 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
       // Blank entries keep their slot so indices match the reader highlight.
       if (!spoken.some(text => text.trim())) continue;
       lastQueued = cursor;
+      rememberTexts(cursor.id, paragraphs);
       await session.appendChapter({
         chapterId: String(cursor.id),
         paragraphs: spoken.map((text, index) => ({
@@ -146,6 +155,12 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
       lastQueued = undefined;
     },
     currentChapterId: (): number | undefined => current?.id,
+    currentChapter: (): ListenChapter | undefined => current,
+    queuedParagraphs: (id: number): string[] | undefined => queuedTexts.get(id),
+    /** Tells listeners (the reader) that playback jumped to `chapterId`. */
+    announce(chapterId: number) {
+      listeners.forEach(cb => cb(chapterId));
+    },
     onChapterChanged(cb: (chapterId: number) => void) {
       listeners.add(cb);
       return () => {

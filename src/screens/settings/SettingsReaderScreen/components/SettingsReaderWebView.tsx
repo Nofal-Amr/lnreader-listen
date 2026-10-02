@@ -77,7 +77,7 @@ const SettingsReaderWebView = ({
     seekTo: seekTts,
     state: ttsState,
     updateSettings: updateTtsSettings,
-  } = useTtsSession();
+  } = useTtsSession({ stopOnUnmount: true });
 
   const assetsUriPrefix = useMemo(
     () => (__DEV__ ? 'http://localhost:8081/assets' : 'file:///android_asset'),

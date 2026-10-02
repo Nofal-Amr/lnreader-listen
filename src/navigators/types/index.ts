@@ -30,6 +30,7 @@ export type RootStackParamList = {
     pluginId: string;
     isNovel?: boolean;
   };
+  Player: undefined;
 };
 
 export type BottomNavigatorParamList = {

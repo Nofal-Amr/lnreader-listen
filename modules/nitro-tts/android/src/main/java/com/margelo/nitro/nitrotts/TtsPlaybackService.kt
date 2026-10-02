@@ -1,6 +1,9 @@
 package com.margelo.nitro.nitrotts
 
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import android.media.AudioManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -28,6 +31,22 @@ internal class TtsPlaybackService : Service() {
         removeSnapshotListener = TtsPlaybackStore.addSnapshotListener(
             mediaNotification::notify,
         )
+        ContextCompat.registerReceiver(
+            this,
+            noisyReceiver,
+            IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
+    // Headphones unplugged / Bluetooth disconnected: pause instead of blaring
+    // the chapter out of the phone speaker.
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                TtsPlaybackStore.pause()
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -42,6 +61,7 @@ internal class TtsPlaybackService : Service() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(noisyReceiver) }
         removeSnapshotListener?.invoke()
         removeSnapshotListener = null
         mediaNotification.release()

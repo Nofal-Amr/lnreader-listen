@@ -31,6 +31,7 @@ import AniListTopNovels from '../screens/browse/discover/AniListTopNovels';
 import BrowseSettings from '../screens/browse/settings/BrowseSettings';
 import PluginDetailsScreen from '../screens/browse/PluginDetailsScreen';
 import WebviewScreen from '@screens/WebviewScreen/WebviewScreen';
+import PlayerScreen from '@screens/player/PlayerScreen';
 import { RootStackParamList } from './types';
 import { useMMKVBoolean } from 'react-native-mmkv';
 import OnboardingScreen from '@screens/onboarding/OnboardingScreen';
@@ -141,6 +142,11 @@ const MainNavigator = () => {
             <Stack.Screen name="SourceNovels" component={SourceNovels} />
             <Stack.Screen name="MigrateNovel" component={MigrateNovel} />
             <Stack.Screen name="WebviewScreen" component={WebviewScreen} />
+            <Stack.Screen
+              name="Player"
+              component={PlayerScreen}
+              options={{ animation: 'slide_from_bottom' }}
+            />
           </Stack.Navigator>
         </UpdateContextProvider>
       </LibraryContextProvider>

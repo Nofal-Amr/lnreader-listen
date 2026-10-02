@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
-  Tts,
   TtsMetadata,
   TtsPlaybackState,
   TtsProgress,
@@ -9,6 +8,7 @@ import {
   TtsSettings,
 } from '@modules/nitro-tts';
 import { computeBreaks } from '@services/listen/computeBreaks';
+import { getSharedSession } from '@services/listen/sharedSession';
 import { getSpeechTransform } from '@services/listen/textPipeline';
 
 type TtsCommand = 'next' | 'pause' | 'play' | 'previous' | 'replay' | 'stop';
@@ -19,7 +19,9 @@ const initialProgress: TtsProgress = {
   paragraphId: '',
 };
 
-export const useTtsSession = () => {
+export const useTtsSession = ({
+  stopOnUnmount = false,
+}: { stopOnUnmount?: boolean } = {}) => {
   const sessionRef = useRef<TtsSession | null>(null);
   const sessionPromiseRef = useRef<Promise<TtsSession> | null>(null);
   const subscriptionsRef = useRef<{ remove(): void }[]>([]);
@@ -33,10 +35,10 @@ export const useTtsSession = () => {
       return sessionRef.current;
     }
     if (!sessionPromiseRef.current) {
-      sessionPromiseRef.current = Tts.createSession()
+      sessionPromiseRef.current = getSharedSession()
         .then(session => {
           if (!mountedRef.current) {
-            void session.stop();
+            if (stopOnUnmount) void session.stop();
             return session;
           }
           sessionRef.current = session;
@@ -53,7 +55,7 @@ export const useTtsSession = () => {
         });
     }
     return sessionPromiseRef.current;
-  }, []);
+  }, [stopOnUnmount]);
 
   const run = useCallback(
     async (operation: (session: TtsSession) => Promise<void>) => {
@@ -143,12 +145,14 @@ export const useTtsSession = () => {
       mountedRef.current = false;
       subscriptionsRef.current.forEach(subscription => subscription.remove());
       subscriptionsRef.current = [];
-      if (sessionRef.current) {
+      // The session is app-wide: leaving the reader keeps playback going.
+      // Only throwaway previews (settings screen) stop it.
+      if (sessionRef.current && stopOnUnmount) {
         void sessionRef.current.stop();
       }
       sessionRef.current = null;
     };
-  }, [ensureSession]);
+  }, [ensureSession, stopOnUnmount]);
 
   return {
     command,

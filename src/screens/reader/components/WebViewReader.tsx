@@ -28,6 +28,7 @@ import { useChapterContext } from '../ChapterContext';
 import { ReaderSearchResult } from '../types';
 import { useTtsSession } from '../hooks/useTtsSession';
 import { listenQueue } from '@services/listen/ListenQueue';
+import { setNowPlaying } from '@services/listen/playerStore';
 import {
   areTtsSettingsEqual,
   toNativeTtsSettings,
@@ -550,7 +551,9 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
               )
                 .then(getSession)
                 .then(session => {
-                  if (novel) listenQueue.start(session, novel, chapter);
+                  if (!novel) return;
+                  listenQueue.start(session, novel, chapter);
+                  setNowPlaying(novel, chapter, queue);
                 })
                 .catch(() => undefined);
               break;
