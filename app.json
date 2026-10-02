@@ -1,9 +1,9 @@
 {
   "expo": {
     "version": "2.1.4",
-    "name": "LNReader",
-    "slug": "LNReader",
-    "scheme": "lnreader",
+    "name": "LNReader Listen",
+    "slug": "LNReaderListen",
+    "scheme": "lnreaderlisten",
     "icon": "./assets/native/ic_launcher.png",
     "plugins": [
       "./plugins/withAndroidCustomizations",
@@ -57,7 +57,7 @@
     ],
     "android": {
       "versionCode": 4196356,
-      "package": "com.rajarsheechatterjee.LNReader",
+      "package": "com.nofalamr.lnreaderlisten",
       "adaptiveIcon": {
         "foregroundImage": "./assets/native/ic_launcher_foreground.png",
         "backgroundImage": "./assets/native/ic_launcher_background.png",

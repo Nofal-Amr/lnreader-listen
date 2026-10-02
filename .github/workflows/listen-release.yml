@@ -1,0 +1,77 @@
+name: Listen Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: listen-release
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  CI: 'true'
+  EXPO_NO_TELEMETRY: '1'
+  NODE_ENV: 'production'
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Check
+        run: pnpm run check && pnpm test
+
+      - name: Configure Release Environment
+        run: pnpm generate:env:release --build-type "GitHub Action" --node-env "production"
+
+      - name: Generate Native Android Project
+        run: pnpm exec expo prebuild --platform android --clean --no-install --non-interactive
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          base_code="$(node --print "require('../app.json').expo.android.versionCode")"
+          base_name="$(node --print "require('../app.json').expo.version")"
+          mkdir -p app/build/intermediates/sourcemaps/react/preRelease
+          ./gradlew :app:assemblePreRelease --build-cache --parallel \
+            -PpreReleaseVersionCode="$((base_code + GITHUB_RUN_NUMBER))" \
+            -PpreReleaseVersionName="${base_name}-listen.r${GITHUB_RUN_NUMBER}" \
+            --stacktrace
+          cp app/build/outputs/apk/preRelease/app-preRelease.apk \
+            "../LNReader-Listen-r${GITHUB_RUN_NUMBER}.apk"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: listen-r${{ github.run_number }}
+          name: LNReader Listen r${{ github.run_number }}
+          body: |
+            Install LNReader-Listen-r${{ github.run_number }}.apk. It installs next to the official LNReader.
+            Commit: ${{ github.sha }}
+          files: LNReader-Listen-r${{ github.run_number }}.apk

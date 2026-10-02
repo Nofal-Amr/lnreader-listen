@@ -34,10 +34,9 @@ android {
         preRelease {
             initWith release
             matchingFallbacks = ["release"]
-            applicationIdSuffix ".preRelease"
-            versionNameSuffix "-pre-release"
+            versionNameSuffix "-listen"
             signingConfig signingConfigs.debug
-            resValue "string", "app_name", "LNReader Preview"
+            resValue "string", "app_name", "LNReader Listen"
         }
     }
 }

@@ -10,6 +10,7 @@ on:
 
 jobs:
   moderate:
+    if: github.repository == 'LNReader/lnreader'
     runs-on: ubuntu-latest
     steps:
       - name: Moderate issues
