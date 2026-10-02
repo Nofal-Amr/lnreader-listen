@@ -54,6 +54,8 @@ type NativeBackgroundTasksModule = {
     directoryUri: string,
   ): Promise<void>;
   cancelAutomaticBackups(): Promise<void>;
+  /** Waits on a native timer that keeps running with the screen off. */
+  sleep(ms: number): Promise<void>;
 };
 
 export default requireNativeModule<NativeBackgroundTasksModule>(

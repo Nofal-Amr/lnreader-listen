@@ -3,6 +3,9 @@ package expo.modules.nativebackgroundtasks
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import android.os.Handler
+import android.os.Looper
+import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +14,8 @@ import java.lang.ref.WeakReference
 import java.util.UUID
 
 class NativeBackgroundTasksModule : Module() {
+    private val sleepHandler = Handler(Looper.getMainLooper())
+
     private val dao by lazy {
         BackgroundTaskDatabase.get(appContext.reactContext!!).tasks()
     }
@@ -25,6 +30,14 @@ class NativeBackgroundTasksModule : Module() {
         OnDestroy {
             reactContextRef?.clear()
             reactContextRef = null
+        }
+
+        // React Native timers are driven by display frames and stop firing with
+        // the screen off on many devices (Samsung especially), which froze
+        // background downloads at their per-chapter cooldown. A native timer
+        // keeps running while the task's wakelock is held.
+        AsyncFunction("sleep") { ms: Double, promise: Promise ->
+            sleepHandler.postDelayed({ promise.resolve(null) }, ms.toLong().coerceAtLeast(0L))
         }
 
         AsyncFunction("enqueue") { type: String, payload: String, title: String, description: String, allowsDuplicates: Boolean, queueName: String ->
