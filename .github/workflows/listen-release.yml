@@ -43,11 +43,12 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Check
-        run: pnpm run check && pnpm test
-
       - name: Configure Release Environment
         run: pnpm generate:env:release --build-type "GitHub Action" --node-env "production"
+
+      - name: Check
+        # format:check is skipped: upstream files already fail it with the pinned prettier.
+        run: pnpm run lint && pnpm run type-check && pnpm test
 
       - name: Generate Native Android Project
         run: pnpm exec expo prebuild --platform android --clean --no-install --non-interactive

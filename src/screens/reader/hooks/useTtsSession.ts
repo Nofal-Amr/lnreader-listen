@@ -147,6 +147,7 @@ export const useTtsSession = () => {
   return {
     command,
     error,
+    getSession: ensureSession,
     loadAndPlay,
     progress,
     seekTo,

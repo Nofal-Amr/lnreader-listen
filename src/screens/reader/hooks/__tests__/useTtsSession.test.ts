@@ -56,6 +56,13 @@ describe('useTtsSession', () => {
     );
   });
 
+  it('exposes the native session for the listen queue', async () => {
+    const { result } = renderHook(useTtsSession);
+    const session = await getNativeSession();
+
+    await expect(result.current.getSession()).resolves.toBe(session);
+  });
+
   it('maps reader controls to native paragraph commands', async () => {
     const { result } = renderHook(useTtsSession);
     const session = await getNativeSession();

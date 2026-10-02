@@ -27,6 +27,8 @@ import { PLUGIN_STORAGE } from '@utils/Storages';
 import { useChapterContext } from '../ChapterContext';
 import { ReaderSearchResult } from '../types';
 import { useTtsSession } from '../hooks/useTtsSession';
+import { listenQueue } from '@services/listen/ListenQueue';
+import { getChapter as getDbChapter } from '@database/queries/ChapterQueries';
 import type { TtsSettings } from '@modules/nitro-tts';
 import { ChapterInfo } from '@database/types';
 import { Dialog } from '@components/Dialog';
@@ -142,6 +144,7 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
     onUserInteraction,
     isTTSReadingRef,
     refetch,
+    getChapter,
   } = useChapterContext();
   const theme = useTheme();
   const initialReaderSettings = useMemo(
@@ -172,6 +175,7 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
   const adjacentChapterScriptRef = useRef(buildAdjacentChapterScript());
   const {
     command: runTtsCommand,
+    getSession,
     loadAndPlay,
     progress: ttsProgress,
     seekTo: seekTts,
@@ -217,20 +221,37 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
   }, [isTTSReadingRef, ttsState, webViewRef]);
 
   useEffect(() => {
-    if (ttsProgress.total > 0) {
+    // Native may already be in the next chapter while this one is still shown.
+    const listening = listenQueue.currentChapterId();
+    if (ttsProgress.total > 0 && (!listening || listening === chapter.id)) {
       webViewRef.current?.injectJavaScript(`
         window.tts?.setActiveIndex?.(${ttsProgress.index});
         true;
       `);
     }
-  }, [ttsProgress, webViewRef]);
+  }, [chapter.id, ttsProgress, webViewRef]);
 
   useEffect(() => {
     if (activeChapterIdRef.current !== chapter.id) {
       activeChapterIdRef.current = chapter.id;
-      runTtsCommand('stop');
+      // A change driven by ListenQueue is the audio moving on by itself; only
+      // a user navigation should stop playback.
+      if (listenQueue.currentChapterId() !== chapter.id) {
+        listenQueue.stop();
+        runTtsCommand('stop');
+      }
     }
   }, [chapter.id, runTtsCommand]);
+
+  useEffect(
+    () =>
+      listenQueue.onChapterChanged(id => {
+        void getDbChapter(id).then(next => {
+          if (next) getChapter(next);
+        });
+      }),
+    [getChapter],
+  );
 
   useEffect(() => {
     const script = buildAdjacentChapterScript(nextChapter, prevChapter);
@@ -492,6 +513,18 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
             );
           }
 
+          if (
+            listenQueue.currentChapterId() === chapter.id &&
+            ttsProgress.total > 0
+          ) {
+            webViewRef.current?.injectJavaScript(`
+              window.tts?.attach?.();
+              window.tts?.setPlaybackState?.(${JSON.stringify(ttsState)});
+              window.tts?.setActiveIndex?.(${ttsProgress.index});
+              true;
+            `);
+          }
+
           if (autoStartTTSRef.current) {
             autoStartTTSRef.current = false;
             setTimeout(() => {
@@ -525,6 +558,8 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
                 typeof payload?.startIndex === 'number'
                   ? payload.startIndex
                   : 0;
+              // load() clears the native upcoming queue, so ListenQueue may
+              // only start queueing the next chapter once it has resolved.
               void loadAndPlay(
                 queue,
                 startIndex,
@@ -532,9 +567,15 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
                   novelName: novel?.name || 'Unknown',
                   chapterName: chapter.name,
                   coverUri: novel?.cover || undefined,
+                  chapterId: String(chapter.id),
                 },
                 toNativeTtsSettings(readerSettingsRef.current.tts),
-              );
+              )
+                .then(getSession)
+                .then(session => {
+                  if (novel) listenQueue.start(session, novel, chapter);
+                })
+                .catch(() => undefined);
               break;
             }
             case 'tts-command': {
@@ -551,8 +592,11 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
                 case 'play':
                 case 'previous':
                 case 'replay':
-                case 'stop':
                   runTtsCommand(data.command);
+                  break;
+                case 'stop':
+                  listenQueue.stop();
+                  runTtsCommand('stop');
                   break;
                 case 'seekTo':
                   if (typeof data.index === 'number') {

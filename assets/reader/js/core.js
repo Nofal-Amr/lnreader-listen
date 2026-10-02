@@ -337,6 +337,22 @@ window.tts = new (function () {
     });
   };
 
+  // Index this chapter's readable elements without starting speech: native
+  // TTS already moved into this chapter on its own (screen-off auto-advance)
+  // and only needs the highlight to follow.
+  this.attach = () => {
+    const readableEntries = this.getAllReadableElements(reader.chapterElement)
+      .map(readableElement => ({
+        element: readableElement,
+        text: this.normalizeText(readableElement.innerText),
+      }))
+      .filter(entry => !!entry.text);
+    this.allReadableElements = readableEntries.map(entry => entry.element);
+    this.totalElements = this.allReadableElements.length;
+    this.textQueue = readableEntries.map(entry => entry.text);
+    this.started = this.totalElements > 0;
+  };
+
   // Get all readable elements in order
   this.getAllReadableElements = element => {
     const elements = [];
