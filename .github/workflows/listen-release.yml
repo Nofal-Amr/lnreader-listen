@@ -47,6 +47,8 @@ jobs:
         run: pnpm generate:env:release --build-type "GitHub Action" --node-env "production"
 
       - name: Check
+        env:
+          NODE_ENV: test
         # format:check is skipped: upstream files already fail it with the pinned prettier.
         run: pnpm run lint && pnpm run type-check && pnpm test
 
