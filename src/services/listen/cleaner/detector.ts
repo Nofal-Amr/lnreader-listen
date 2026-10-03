@@ -58,6 +58,67 @@ const CONFUSABLES: Record<string, string> = {
   '\u0422': 'T',
   '\u0425': 'X',
 };
+// Small capitals and other look-alikes sites use to hide their name from
+// cleaners (e.g. "ɴᴏᴠᴇʟɪɢʜᴛ"); NFKC does not fold these.
+const EXTRA_LOOKALIKES: [number, string][] = [
+  [0x1d00, 'a'],
+  [0x0299, 'b'],
+  [0x1d04, 'c'],
+  [0x1d05, 'd'],
+  [0x1d07, 'e'],
+  [0x0493, 'f'],
+  [0x0262, 'g'],
+  [0x029c, 'h'],
+  [0x026a, 'i'],
+  [0x1d0a, 'j'],
+  [0x1d0b, 'k'],
+  [0x029f, 'l'],
+  [0x1d0d, 'm'],
+  [0x0274, 'n'],
+  [0x1d0f, 'o'],
+  [0x1d18, 'p'],
+  [0x0280, 'r'],
+  [0xa731, 's'],
+  [0x1d1b, 't'],
+  [0x1d1c, 'u'],
+  [0x1d20, 'v'],
+  [0x1d21, 'w'],
+  [0x028f, 'y'],
+  [0x1d22, 'z'],
+  [0x04cf, 'l'],
+  [0x04c0, 'l'],
+  [0x01c0, 'l'],
+  [0x0131, 'i'],
+  [0x0269, 'i'],
+  [0x0456, 'i'],
+  [0x0458, 'j'],
+  [0x0501, 'd'],
+  [0x051b, 'q'],
+  [0x051d, 'w'],
+  [0x03f2, 'c'],
+  [0x0261, 'g'],
+  [0x0251, 'a'],
+  [0x00f8, 'o'],
+  [0x0275, 'o'],
+];
+for (const [code, latin] of EXTRA_LOOKALIKES) {
+  CONFUSABLES[String.fromCharCode(code)] = latin;
+}
+
+// Invisible characters inserted inside names (zero-width space/joiners, BOM,
+// soft hyphen, word joiner, Mongolian vowel separator).
+export const INVISIBLE_RE = new RegExp(
+  '[' +
+    [
+      0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x2060, 0x2061, 0x2062, 0x2063,
+      0x2064, 0xfeff, 0x00ad, 0x180e,
+    ]
+      .map(c => String.fromCharCode(c))
+      .join('') +
+    ']',
+  'g',
+);
+
 const foldCache = new Map<string, string>();
 
 /** Length-preserving normalisation: fullwidth → ASCII, look-alike letters → Latin. */
@@ -191,6 +252,7 @@ export class Detector {
   private suffixRe: RegExp;
   private prefixRe: RegExp;
   private promoParenRe: RegExp;
+  private pairedDecoRe: RegExp | null;
   private sentenceRx: [string, RegExp][] = [];
   private paraRx: [string, RegExp][] = [];
   private protectedRx: RegExp[];
@@ -255,6 +317,12 @@ export class Detector {
       'i',
     );
     this.prefixRe = new RegExp(`^\\s*${brandFull}\\s*[-–—|:•·~/]+\\s*`, 'i');
+    // "➤ Novelight ➤", "◆ SiteName ◆": one token wrapped in the same
+    // decorative symbol is a watermark whatever the name (normal and high).
+    this.pairedDecoRe =
+      (options.sensitivity ?? 'normal') === 'low'
+        ? null
+        : /([➤►▶▸➜➔➣➢→⇒◆◇♦❖■□▪●○•◉★☆✦✧✪⋆✿❀♠♣♥♡⚜※])\s*[^\s]{2,25}\s*\1/g;
     this.promoParenRe =
       /[([]\s*(?:only\s+on\b|read\s+(?:the\s+)?(?:full|more|latest)\b|source\s*:|visit\b|available\s+(?:on|at)\b)[^)\]\n]{0,60}[)\]]/gi;
 
@@ -427,6 +495,7 @@ export class Detector {
       }
     };
     push(this.promoParenRe, 'promo_paren');
+    if (this.pairedDecoRe) push(this.pairedDecoRe, 'bracketed_site');
     push(this.bracketRe, 'bracketed_site');
     push(this.wrapRe, 'bracketed_site');
     push(this.decoRe, 'bracketed_site');

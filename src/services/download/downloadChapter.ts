@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { cleanForStorage } from '@services/listen/cleanStoredChapters';
 import { NOVEL_STORAGE } from '@utils/Storages';
 import { Plugin } from '@plugins/types';
 import { downloadFile } from '@plugins/helpers/fetch';
@@ -45,7 +46,8 @@ const downloadFiles = async (
     novelId,
     chapterId,
   });
-  const loadedCheerio = cheerio.load(html);
+  // Optionally store the chapter already cleaned of watermarks and spam.
+  const loadedCheerio = cheerio.load(cleanForStorage(html));
   const imgs = loadedCheerio('img').toArray();
   for (let i = 0; i < imgs.length; i++) {
     const elem = loadedCheerio(imgs[i]);

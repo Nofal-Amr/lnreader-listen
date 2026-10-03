@@ -1,7 +1,7 @@
 import { load, type AnyNode, type Element } from 'cheerio';
 
 import { judgeParagraph, applyVerdict } from './cleanParagraph';
-import { Detector, countWords, looksLikeTitle } from './detector';
+import { Detector, INVISIBLE_RE, countWords, looksLikeTitle } from './detector';
 import { fixTitle } from './fixTitle';
 import type { Sensitivity } from './patterns';
 import { ruleRegex, type SpeechRule } from '../speechRules';
@@ -36,6 +36,8 @@ export type CleanerOptions = {
   extraSites?: string[];
   /** Custom remove/replace rules applied to the page text. */
   rules?: SpeechRule[];
+  /** Clean chapter files permanently when they are downloaded or imported. */
+  cleanOnSave?: boolean;
 };
 
 const detectors = new Map<string, Detector>();
@@ -87,6 +89,12 @@ export const cleanChapterHtml = (
     .filter((pair): pair is [RegExp, string] => pair[0] !== null);
   if (!det && !options.fixTitles && !rules.length) return html;
   const $ = load(html, null, false);
+  // Strip invisible characters hidden inside watermark names first.
+  const stripInvisible = (node: AnyNode) => {
+    if (node.type === 'text') node.data = node.data.replace(INVISIBLE_RE, '');
+    else if (isElement(node)) node.children.forEach(stripInvisible);
+  };
+  $.root().contents().toArray().forEach(stripInvisible);
 
   const leaves: Element[] = [];
   const walk = (node: AnyNode) => {

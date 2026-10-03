@@ -6,6 +6,7 @@ import { useChapterReaderSettings, useTheme } from '@hooks/persisted';
 import type { ChapterReaderSettings } from '@hooks/persisted/useSettings';
 
 import SpeechRulesSection from './SpeechRulesSection';
+import StoredChaptersSection from './StoredChaptersSection';
 
 /** Watermark cleaning and custom rules for the page text (not only TTS). */
 const CleanTab: React.FC = () => {
@@ -25,6 +26,7 @@ const CleanTab: React.FC = () => {
         setTts={setTts}
         theme={theme}
       />
+      <StoredChaptersSection tts={tts} setTts={setTts} theme={theme} />
       <SpeechRulesSection
         part="rules"
         tts={tts}

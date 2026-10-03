@@ -1,3 +1,4 @@
+import { cleanForStorage } from '@services/listen/cleanStoredChapters';
 import dayjs from 'dayjs';
 import {
   updateNovelCategoryById,
@@ -109,7 +110,7 @@ const insertLocalChapter = async (
     await NativeFile.mkdir(novelDir + '/' + insertId);
     await NativeFile.writeFile(
       `${novelDir}/${insertId}/index.html`,
-      chapterText,
+      cleanForStorage(chapterText),
     );
     return;
   }
