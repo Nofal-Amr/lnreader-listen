@@ -12,4 +12,6 @@ export interface TtsParagraph {
   text: string;
   /** Clause/sentence starts inside `text`, ascending. */
   breaks?: TtsBreak[];
+  /** Silence to play instead of speech (section breaks); used when `text` is blank. */
+  pauseMs?: number;
 }

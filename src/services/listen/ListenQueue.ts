@@ -1,4 +1,4 @@
-import type { TtsSession } from '@modules/nitro-tts';
+import type { TtsParagraph, TtsSession } from '@modules/nitro-tts';
 import {
   getChapter,
   getNextChapter,
@@ -8,10 +8,9 @@ import {
 import type { ChapterInfo } from '@database/types';
 
 import { fixTitle } from './cleaner/fixTitle';
-import { computeBreaks } from './computeBreaks';
 import { extractTtsParagraphs } from './extractTtsParagraphs';
 import { loadChapterHtml } from './loadChapterHtml';
-import { getSpeechTransform } from './textPipeline';
+import { toTtsParagraphs } from './textPipeline';
 
 export type ListenNovel = {
   id: number;
@@ -37,7 +36,7 @@ export type ListenQueueDeps = {
   ) => Promise<string>;
   markChapterRead: (id: number) => Promise<void>;
   updateChapterProgress: (id: number, progress: number) => Promise<void>;
-  speechTransform: () => (text: string) => string;
+  toTtsParagraphs: (texts: string[]) => TtsParagraph[];
 };
 
 type Session = Pick<
@@ -85,19 +84,13 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
         paragraphs = [];
       }
       if (myRun !== run) return;
-      const speak = deps.speechTransform();
-      const spoken = paragraphs.map(speak);
-      // Blank entries keep their slot so indices match the reader highlight.
-      if (!spoken.some(text => text.trim())) continue;
+      const spoken = deps.toTtsParagraphs(paragraphs);
+      if (!spoken.some(p => p.text.trim())) continue;
       lastQueued = cursor;
       rememberTexts(cursor.id, paragraphs);
       await session.appendChapter({
         chapterId: String(cursor.id),
-        paragraphs: spoken.map((text, index) => ({
-          id: String(index),
-          text,
-          breaks: computeBreaks(text),
-        })),
+        paragraphs: spoken,
         metadata: {
           novelName: novel.name,
           chapterName: fixTitle(cursor.name),
@@ -182,5 +175,5 @@ export const listenQueue = createListenQueue({
   loadChapterHtml: (novel, chapter) => loadChapterHtml(novel, chapter),
   markChapterRead,
   updateChapterProgress,
-  speechTransform: getSpeechTransform,
+  toTtsParagraphs,
 });

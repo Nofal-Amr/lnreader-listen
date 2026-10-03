@@ -9,6 +9,8 @@ import type { ThemeColors } from '@theme/types';
 import type { Sensitivity } from '@services/listen/cleaner/patterns';
 import {
   DEFAULT_SPEECH_RULE_SETTINGS,
+  type EmojiMode,
+  type SectionBreakMode,
   type SpeechRule,
   type SpeechRuleSettings,
 } from '@services/listen/speechRules';
@@ -21,6 +23,8 @@ import ReaderSheetPreferenceItem from './ReaderSheetPreferenceItem';
 type ReaderTts = NonNullable<ChapterReaderSettings['tts']>;
 
 type Props = {
+  /** Which sub-tab to render: cleanup/speaking options, or custom rules. */
+  part: 'text' | 'rules';
   tts: ChapterReaderSettings['tts'];
   setTts: (tts: ReaderTts) => void;
   theme: ThemeColors;
@@ -28,6 +32,50 @@ type Props = {
 
 const LEVELS: (Sensitivity | 'off')[] = ['off', 'low', 'normal', 'high'];
 const EMPTY_RULE: SpeechRule = { id: '', find: '', replace: '' };
+
+const SECTION_OPTIONS: [SectionBreakMode, string][] = [
+  ['pause', 'Pause'],
+  ['say', 'Say "Section break"'],
+  ['skip', 'Skip'],
+];
+const EMOJI_OPTIONS: [EmojiMode, string][] = [
+  ['remove', 'Remove'],
+  ['keep', 'Read them'],
+  ['replace', 'Say a word'],
+];
+
+const ChoiceRow = <T extends string>({
+  label,
+  options,
+  selected,
+  onSelect,
+  theme,
+}: {
+  label: string;
+  options: [T, string][];
+  selected: T;
+  onSelect: (value: T) => void;
+  theme: ThemeColors;
+}) => (
+  <View style={styles.chipSection}>
+    <Text style={[styles.chipLabel, { color: theme.onSurfaceVariant }]}>
+      {label}
+    </Text>
+    <View style={styles.chipRow}>
+      {options.map(([value, text]) => (
+        <Chip
+          key={value}
+          selected={value === selected}
+          mode={value === selected ? 'flat' : 'outlined'}
+          style={styles.chip}
+          onPress={() => onSelect(value)}
+        >
+          {text}
+        </Chip>
+      ))}
+    </View>
+  </View>
+);
 
 const describeRule = (rule: SpeechRule) =>
   rule.replace
@@ -113,7 +161,7 @@ const RuleEditor = ({
 };
 
 /** Watermark cleaning plus T2S-style speaking rules. */
-const SpeechRulesSection: React.FC<Props> = ({ tts, setTts, theme }) => {
+const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
   const current = useMemo<ReaderTts>(() => tts ?? {}, [tts]);
   const cleaner = { ...DEFAULT_CLEANER_OPTIONS, ...current.cleaner };
   const speech: SpeechRuleSettings = useMemo(
@@ -153,7 +201,7 @@ const SpeechRulesSection: React.FC<Props> = ({ tts, setTts, theme }) => {
     showToast('Rules copied to the clipboard');
   };
 
-  return (
+  const textPart = (
     <>
       <List.SubHeader theme={theme}>Text cleanup</List.SubHeader>
       <View style={styles.chipSection}>
@@ -216,13 +264,47 @@ const SpeechRulesSection: React.FC<Props> = ({ tts, setTts, theme }) => {
         theme={theme}
       />
       <ReaderSheetPreferenceItem
-        label="Skip separator lines"
-        description='Lines like "* * *" or "◇◇◇".'
-        value={speech.skipSeparators}
-        onPress={() => setSpeech({ skipSeparators: !speech.skipSeparators })}
+        label="Do not read aloud quotation marks"
+        description='Stops the voice saying "quote". Apostrophes in words stay.'
+        value={speech.skipQuoteMarks}
+        onPress={() => setSpeech({ skipQuoteMarks: !speech.skipQuoteMarks })}
         theme={theme}
       />
 
+      <List.SubHeader theme={theme}>Section breaks</List.SubHeader>
+      <ChoiceRow
+        label='Lines like "_____", "=====", "* * *", "◇◇◇" or ".."'
+        options={SECTION_OPTIONS}
+        selected={speech.sectionBreak}
+        onSelect={sectionBreak => setSpeech({ sectionBreak })}
+        theme={theme}
+      />
+
+      <List.SubHeader theme={theme}>Emoji</List.SubHeader>
+      <ChoiceRow
+        label="When the text contains emoji"
+        options={EMOJI_OPTIONS}
+        selected={speech.emojiMode}
+        onSelect={emojiMode => setSpeech({ emojiMode })}
+        theme={theme}
+      />
+      {speech.emojiMode === 'replace' ? (
+        <View style={styles.chipSection}>
+          <TextInput
+            mode="outlined"
+            label="Say this instead of each emoji"
+            defaultValue={speech.emojiReplacement}
+            onEndEditing={e =>
+              setSpeech({ emojiReplacement: e.nativeEvent.text })
+            }
+          />
+        </View>
+      ) : null}
+    </>
+  );
+
+  const rulesPart = (
+    <>
       <List.SubHeader theme={theme}>Custom rules</List.SubHeader>
       {speech.rules.map(rule => (
         <List.Item
@@ -266,6 +348,8 @@ const SpeechRulesSection: React.FC<Props> = ({ tts, setTts, theme }) => {
       />
     </>
   );
+
+  return part === 'rules' ? rulesPart : textPart;
 };
 
 export default React.memo(SpeechRulesSection);

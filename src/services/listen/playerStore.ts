@@ -16,7 +16,6 @@ import {
 import { getMMKVObject } from '@utils/mmkv/mmkv';
 
 import { fixTitle } from './cleaner/fixTitle';
-import { computeBreaks } from './computeBreaks';
 import { extractTtsParagraphs } from './extractTtsParagraphs';
 import {
   listenQueue,
@@ -25,7 +24,7 @@ import {
 } from './ListenQueue';
 import { loadChapterHtml } from './loadChapterHtml';
 import { getSharedSession, onSharedSession } from './sharedSession';
-import { getSpeechTransform } from './textPipeline';
+import { hasSpeech, toTtsParagraphs } from './textPipeline';
 import { toNativeTtsSettings } from './ttsSettings';
 
 export type PlayerCommand =
@@ -110,17 +109,12 @@ export const playChapter = async (
   try {
     const session = await getSharedSession();
     const texts = extractTtsParagraphs(await loadChapterHtml(novel, chapter));
-    const speak = getSpeechTransform();
-    const spoken = texts.map(speak);
-    if (!spoken.some(t => t.trim())) {
+    const paragraphs = toTtsParagraphs(texts);
+    if (!hasSpeech(paragraphs)) {
       throw new Error('This chapter has no readable text.');
     }
     await session.load(
-      spoken.map((text, index) => ({
-        id: String(index),
-        text,
-        breaks: computeBreaks(text),
-      })),
+      paragraphs,
       startIndex,
       {
         novelName: novel.name,

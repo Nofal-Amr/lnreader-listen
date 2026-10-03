@@ -1,7 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Pressable, View, StyleSheet, Text, ScrollView } from 'react-native';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Dialog, List, Slider } from '@components';
+import {
+  Dialog,
+  List,
+  SegmentedControl,
+  Slider,
+  type SegmentedControlOption,
+} from '@components';
 import { getLocales } from 'expo-localization';
 import { Tts, TtsEngine, TtsVoice } from '@modules/nitro-tts';
 import {
@@ -291,8 +297,17 @@ const EnginePickerModal: React.FC<EnginePickerModalProps> = ({
   );
 };
 
+type SubTab = 'voice' | 'playback' | 'text' | 'rules';
+const SUB_TABS: SegmentedControlOption<SubTab>[] = [
+  { value: 'voice', label: 'Voice' },
+  { value: 'playback', label: 'Playback' },
+  { value: 'text', label: 'Text' },
+  { value: 'rules', label: 'Rules' },
+];
+
 const TTSTab: React.FC = () => {
   const theme = useTheme();
+  const [subTab, setSubTab] = useState<SubTab>('voice');
   const { TTSEnable = true, setChapterGeneralSettings } =
     useChapterGeneralSettings();
 
@@ -343,8 +358,6 @@ const TTSTab: React.FC = () => {
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.section}>
-          <List.SubHeader theme={theme}>Text to Speech</List.SubHeader>
-
           <ReaderSheetPreferenceItem
             label="Enable TTS"
             value={TTSEnable}
@@ -354,102 +367,145 @@ const TTSTab: React.FC = () => {
 
           {TTSEnable ? (
             <>
-              {engines.length > 0 ? (
-                <List.Item
-                  title="Engine"
-                  description={tts?.engine?.label || 'System default'}
-                  onPress={() => setEngineModalVisible(true)}
-                  right="chevron-right"
+              <View style={styles.subTabs}>
+                <SegmentedControl
+                  options={SUB_TABS}
+                  value={subTab}
+                  onChange={setSubTab}
+                  showCheckIcon={false}
+                  theme={theme}
+                />
+              </View>
+
+              {subTab === 'voice' ? (
+                <>
+                  {engines.length > 0 ? (
+                    <List.Item
+                      title="Engine"
+                      description={tts?.engine?.label || 'System default'}
+                      onPress={() => setEngineModalVisible(true)}
+                      right="chevron-right"
+                      theme={theme}
+                    />
+                  ) : null}
+
+                  <List.Item
+                    title="Voice"
+                    description={tts?.voice?.name || 'System default'}
+                    onPress={() => setVoiceModalVisible(true)}
+                    right="chevron-right"
+                    theme={theme}
+                  />
+
+                  <View style={styles.sliderSection}>
+                    <Text
+                      style={[styles.sliderLabel, { color: theme.onSurface }]}
+                    >
+                      Speed: {tts?.rate?.toFixed(1) || '1.0'}x
+                    </Text>
+                    <Slider
+                      value={tts?.rate || 1}
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                      showValueIndicator
+                      formatValue={value => `${value.toFixed(1)}x`}
+                      accessibilityLabel="Text to speech speed"
+                      onSlidingComplete={value =>
+                        setChapterReaderSettings({
+                          tts: { ...tts, rate: value },
+                        })
+                      }
+                    />
+                  </View>
+
+                  <View style={styles.sliderSection}>
+                    <Text
+                      style={[styles.sliderLabel, { color: theme.onSurface }]}
+                    >
+                      Pitch: {tts?.pitch?.toFixed(1) || '1.0'}
+                    </Text>
+                    <Slider
+                      value={tts?.pitch || 1}
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                      showValueIndicator
+                      formatValue={value => value.toFixed(1)}
+                      accessibilityLabel="Text to speech pitch"
+                      onSlidingComplete={value =>
+                        setChapterReaderSettings({
+                          tts: { ...tts, pitch: value },
+                        })
+                      }
+                    />
+                  </View>
+                  <ListenSettingsSection
+                    part="voice"
+                    tts={tts}
+                    setTts={nextTts =>
+                      setChapterReaderSettings({ tts: nextTts })
+                    }
+                    theme={theme}
+                  />
+                </>
+              ) : null}
+
+              {subTab === 'playback' ? (
+                <>
+                  <ListenSettingsSection
+                    part="playback"
+                    tts={tts}
+                    setTts={nextTts =>
+                      setChapterReaderSettings({ tts: nextTts })
+                    }
+                    theme={theme}
+                  />
+                  <List.SubHeader theme={theme}>Reader</List.SubHeader>
+                  <ReaderSheetPreferenceItem
+                    description={getString(
+                      'readerScreen.bottomSheet.ttsAutoPageAdvanceDescription',
+                    )}
+                    label="Auto Page Advance"
+                    value={tts?.autoPageAdvance === true}
+                    onPress={() =>
+                      setChapterReaderSettings({
+                        tts: {
+                          ...tts,
+                          autoPageAdvance: !(tts?.autoPageAdvance === true),
+                        },
+                      })
+                    }
+                    theme={theme}
+                  />
+
+                  <ReaderSheetPreferenceItem
+                    description={getString(
+                      'readerScreen.bottomSheet.ttsScrollToTopDescription',
+                    )}
+                    label="Scroll to Top"
+                    value={tts?.scrollToTop !== false}
+                    onPress={() =>
+                      setChapterReaderSettings({
+                        tts: {
+                          ...tts,
+                          scrollToTop: !(tts?.scrollToTop !== false),
+                        },
+                      })
+                    }
+                    theme={theme}
+                  />
+                </>
+              ) : null}
+
+              {subTab === 'text' || subTab === 'rules' ? (
+                <SpeechRulesSection
+                  part={subTab}
+                  tts={tts}
+                  setTts={nextTts => setChapterReaderSettings({ tts: nextTts })}
                   theme={theme}
                 />
               ) : null}
-
-              <List.Item
-                title="Voice"
-                description={tts?.voice?.name || 'System default'}
-                onPress={() => setVoiceModalVisible(true)}
-                right="chevron-right"
-                theme={theme}
-              />
-
-              <View style={styles.sliderSection}>
-                <Text style={[styles.sliderLabel, { color: theme.onSurface }]}>
-                  Speed: {tts?.rate?.toFixed(1) || '1.0'}x
-                </Text>
-                <Slider
-                  value={tts?.rate || 1}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  showValueIndicator
-                  formatValue={value => `${value.toFixed(1)}x`}
-                  accessibilityLabel="Text to speech speed"
-                  onSlidingComplete={value =>
-                    setChapterReaderSettings({ tts: { ...tts, rate: value } })
-                  }
-                />
-              </View>
-
-              <View style={styles.sliderSection}>
-                <Text style={[styles.sliderLabel, { color: theme.onSurface }]}>
-                  Pitch: {tts?.pitch?.toFixed(1) || '1.0'}
-                </Text>
-                <Slider
-                  value={tts?.pitch || 1}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  showValueIndicator
-                  formatValue={value => value.toFixed(1)}
-                  accessibilityLabel="Text to speech pitch"
-                  onSlidingComplete={value =>
-                    setChapterReaderSettings({ tts: { ...tts, pitch: value } })
-                  }
-                />
-              </View>
-
-              <ReaderSheetPreferenceItem
-                description={getString(
-                  'readerScreen.bottomSheet.ttsAutoPageAdvanceDescription',
-                )}
-                label="Auto Page Advance"
-                value={tts?.autoPageAdvance === true}
-                onPress={() =>
-                  setChapterReaderSettings({
-                    tts: {
-                      ...tts,
-                      autoPageAdvance: !(tts?.autoPageAdvance === true),
-                    },
-                  })
-                }
-                theme={theme}
-              />
-
-              <ReaderSheetPreferenceItem
-                description={getString(
-                  'readerScreen.bottomSheet.ttsScrollToTopDescription',
-                )}
-                label="Scroll to Top"
-                value={tts?.scrollToTop !== false}
-                onPress={() =>
-                  setChapterReaderSettings({
-                    tts: { ...tts, scrollToTop: !(tts?.scrollToTop !== false) },
-                  })
-                }
-                theme={theme}
-              />
-
-              <ListenSettingsSection
-                tts={tts}
-                setTts={nextTts => setChapterReaderSettings({ tts: nextTts })}
-                theme={theme}
-              />
-
-              <SpeechRulesSection
-                tts={tts}
-                setTts={nextTts => setChapterReaderSettings({ tts: nextTts })}
-                theme={theme}
-              />
             </>
           ) : null}
         </View>
@@ -486,6 +542,10 @@ const styles = StyleSheet.create({
   },
   section: {
     marginVertical: 8,
+  },
+  subTabs: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   sliderSection: {
     paddingHorizontal: 16,

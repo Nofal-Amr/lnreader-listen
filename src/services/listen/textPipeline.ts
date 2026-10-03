@@ -9,7 +9,10 @@ import {
   compileSpeechRules,
   DEFAULT_SPEECH_RULE_SETTINGS,
   type SpeechRuleSettings,
+  type SpokenParagraph,
 } from './speechRules';
+import { computeBreaks } from './computeBreaks';
+import type { TtsParagraph } from '@modules/nitro-tts';
 
 export const DEFAULT_CLEANER_OPTIONS: CleanerOptions = {
   sensitivity: 'normal',
@@ -31,10 +34,10 @@ export const getSpeechRuleSettings = (): SpeechRuleSettings => ({
 });
 
 let cachedKey = '';
-let cachedTransform: (text: string) => string = text => text;
+let cachedTransform: (text: string) => SpokenParagraph = text => ({ text });
 
-/** The current text → spoken-text transform, recompiled only when rules change. */
-export const getSpeechTransform = (): ((text: string) => string) => {
+/** The current paragraph → spoken transform, recompiled only when rules change. */
+export const getSpeechTransform = (): ((text: string) => SpokenParagraph) => {
   const settings = getSpeechRuleSettings();
   const key = JSON.stringify(settings);
   if (key !== cachedKey) {
@@ -43,3 +46,25 @@ export const getSpeechTransform = (): ((text: string) => string) => {
   }
   return cachedTransform;
 };
+
+/**
+ * Reader paragraphs → native TTS paragraphs: speaking rules applied, clause
+ * breaks computed. Indices are preserved (blank entries stay) so the reader
+ * highlight matches the native queue.
+ */
+export const toTtsParagraphs = (texts: string[]): TtsParagraph[] => {
+  const speak = getSpeechTransform();
+  return texts.map((raw, index) => {
+    const { text, pauseMs } = speak(raw);
+    return {
+      id: String(index),
+      text,
+      breaks: computeBreaks(text),
+      ...(pauseMs ? { pauseMs } : {}),
+    };
+  });
+};
+
+/** True when at least one paragraph will actually be spoken. */
+export const hasSpeech = (paragraphs: TtsParagraph[]) =>
+  paragraphs.some(p => p.text.trim().length > 0);

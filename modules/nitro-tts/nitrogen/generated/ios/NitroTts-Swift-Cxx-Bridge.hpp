@@ -352,17 +352,6 @@ namespace margelo::nitro::nitrotts::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::vector<TtsParagraph>
-  /**
-   * Specialized version of `std::vector<TtsParagraph>`.
-   */
-  using std__vector_TtsParagraph_ = std::vector<TtsParagraph>;
-  inline std::vector<TtsParagraph> create_std__vector_TtsParagraph_(size_t size) noexcept {
-    std::vector<TtsParagraph> vector;
-    vector.reserve(size);
-    return vector;
-  }
-  
   // pragma MARK: std::optional<double>
   /**
    * Specialized version of `std::optional<double>`.
@@ -376,6 +365,17 @@ namespace margelo::nitro::nitrotts::bridge::swift {
   }
   inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
     return optional.value();
+  }
+  
+  // pragma MARK: std::vector<TtsParagraph>
+  /**
+   * Specialized version of `std::vector<TtsParagraph>`.
+   */
+  using std__vector_TtsParagraph_ = std::vector<TtsParagraph>;
+  inline std::vector<TtsParagraph> create_std__vector_TtsParagraph_(size_t size) noexcept {
+    std::vector<TtsParagraph> vector;
+    vector.reserve(size);
+    return vector;
   }
   
   // pragma MARK: std::optional<TtsSkipUnit>

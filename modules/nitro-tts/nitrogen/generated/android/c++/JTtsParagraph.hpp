@@ -43,6 +43,8 @@ namespace margelo::nitro::nitrotts {
       jni::local_ref<jni::JString> text = this->getFieldValue(fieldText);
       static const auto fieldBreaks = clazz->getField<jni::JArrayClass<JTtsBreak>>("breaks");
       jni::local_ref<jni::JArrayClass<JTtsBreak>> breaks = this->getFieldValue(fieldBreaks);
+      static const auto fieldPauseMs = clazz->getField<jni::JDouble>("pauseMs");
+      jni::local_ref<jni::JDouble> pauseMs = this->getFieldValue(fieldPauseMs);
       return TtsParagraph(
         id->toStdString(),
         text->toStdString(),
@@ -55,7 +57,8 @@ namespace margelo::nitro::nitrotts {
             __vector.push_back(__element->toCpp());
           }
           return __vector;
-        }(breaks)) : std::nullopt
+        }(breaks)) : std::nullopt,
+        pauseMs != nullptr ? std::make_optional(pauseMs->value()) : std::nullopt
       );
     }
 
@@ -65,7 +68,7 @@ namespace margelo::nitro::nitrotts {
      */
     [[maybe_unused]]
     static jni::local_ref<JTtsParagraph::javaobject> fromCpp(const TtsParagraph& value) {
-      using JSignature = JTtsParagraph(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JTtsBreak>>);
+      using JSignature = JTtsParagraph(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JTtsBreak>>, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -81,7 +84,8 @@ namespace margelo::nitro::nitrotts {
             __array->setElement(__i, *__elementJni);
           }
           return __array;
-        }(value.breaks.value()) : nullptr
+        }(value.breaks.value()) : nullptr,
+        value.pauseMs.has_value() ? jni::JDouble::valueOf(value.pauseMs.value()) : nullptr
       );
     }
   };

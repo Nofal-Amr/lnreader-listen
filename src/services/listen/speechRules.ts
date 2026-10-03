@@ -10,13 +10,32 @@ export interface SpeechRule {
   enabled?: boolean;
 }
 
+/** What to do with emoji: drop them, let the voice read their names, or say a word. */
+export type EmojiMode = 'remove' | 'keep' | 'replace';
+
+/** Lines like "_____", "=====", "* * *" or "..": skip, pause, or say "Section break". */
+export type SectionBreakMode = 'skip' | 'pause' | 'say';
+
 export interface SpeechRuleSettings {
   skipLinks: boolean;
   skipPunctuationNames: boolean;
   skipReferences: boolean;
-  skipSeparators: boolean;
+  /** Stops engines saying "quote" for quotation marks. */
+  skipQuoteMarks: boolean;
+  emojiMode: EmojiMode;
+  emojiReplacement: string;
+  sectionBreak: SectionBreakMode;
   rules: SpeechRule[];
 }
+
+/** A paragraph as it will be spoken; `pauseMs` replaces speech for breaks. */
+export interface SpokenParagraph {
+  text: string;
+  pauseMs?: number;
+}
+
+export const SECTION_BREAK_PAUSE_MS = 900;
+const SECTION_BREAK_WORDS = 'Section break.';
 
 /** Phrases carried over from the user's T2S rules. */
 export const DEFAULT_SPEECH_RULES: SpeechRule[] = [
@@ -34,7 +53,10 @@ export const DEFAULT_SPEECH_RULE_SETTINGS: SpeechRuleSettings = {
   skipLinks: true,
   skipPunctuationNames: true,
   skipReferences: true,
-  skipSeparators: true,
+  skipQuoteMarks: true,
+  emojiMode: 'remove',
+  emojiReplacement: '',
+  sectionBreak: 'pause',
   rules: DEFAULT_SPEECH_RULES,
 };
 
@@ -45,6 +67,22 @@ const SPOKEN_SYMBOLS_RE = /[~*#_|•◆◇♦■□●○★☆※^=+<>]+/g;
 const ELLIPSIS_RE = /…|\.{4,}/g;
 const REFERENCE_RE = /\[(?:\d+|citation needed|note \d+)\]/gi;
 const WORD_RE = /[A-Za-z0-9À-ɏЀ-ӿ؀-ۿ一-鿿]/;
+// Double quotes always; single curly/straight quotes only when not an
+// apostrophe inside a word (don't, it's).
+const QUOTE_RE = /["“”„‟«»]|(?<![A-Za-z])['‘’]|['‘’](?![A-Za-z])/g;
+
+// Built from code points: pictographs, symbols, dingbats, arrows/technical,
+// followed by any variation selector (FE0F), zero-width joiner (200D) or
+// keycap (20E3) so multi-part emoji collapse into one match.
+const cp = (n: number) => String.fromCodePoint(n);
+const range = (a: number, b: number) => `${cp(a)}-${cp(b)}`;
+const EMOJI_RE = new RegExp(
+  `(?:[${range(0x1f000, 0x1faff)}${range(0x2600, 0x27bf)}${range(
+    0x2b00,
+    0x2bff,
+  )}${range(0x2300, 0x23ff)}][${cp(0xfe0f)}${cp(0x200d)}${cp(0x20e3)}]*)+`,
+  'gu',
+);
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const IS_WORD = /[A-Za-z0-9_]/;
@@ -66,22 +104,29 @@ const ruleRegex = (rule: SpeechRule): RegExp | null => {
   }
 };
 
-/** Compiles the settings once into a text → text function for TTS. */
+/** Compiles the settings once into a paragraph → spoken-paragraph function. */
 export const compileSpeechRules = (
   settings: SpeechRuleSettings,
-): ((text: string) => string) => {
+): ((text: string) => SpokenParagraph) => {
   const custom = settings.rules
     .filter(rule => rule.enabled !== false)
     .map(rule => [ruleRegex(rule), rule.replace] as const)
     .filter((pair): pair is [RegExp, string] => pair[0] !== null);
+  const emojiWord = settings.emojiReplacement.trim();
 
   return (input: string) => {
     let text = input;
     for (const [re, replacement] of custom) {
       text = text.replace(re, replacement);
     }
+    if (settings.emojiMode === 'remove') {
+      text = text.replace(EMOJI_RE, ' ');
+    } else if (settings.emojiMode === 'replace') {
+      text = text.replace(EMOJI_RE, emojiWord ? ` ${emojiWord} ` : ' ');
+    }
     if (settings.skipLinks) text = text.replace(LINK_RE, ' ');
     if (settings.skipReferences) text = text.replace(REFERENCE_RE, '');
+    if (settings.skipQuoteMarks) text = text.replace(QUOTE_RE, '');
     if (settings.skipPunctuationNames) {
       text = text.replace(ELLIPSIS_RE, '...').replace(SPOKEN_SYMBOLS_RE, ' ');
     }
@@ -89,7 +134,20 @@ export const compileSpeechRules = (
       .replace(/\s{2,}/g, ' ')
       .replace(/\s+([.,!?;:])/g, '$1')
       .trim();
-    if (settings.skipSeparators && !WORD_RE.test(text)) return '';
-    return text;
+    // Nothing speakable left but the line had content: a section break.
+    const keptEmoji = settings.emojiMode === 'keep' && EMOJI_RE.test(text);
+    EMOJI_RE.lastIndex = 0;
+    if (!WORD_RE.test(text) && !keptEmoji) {
+      if (!input.trim()) return { text: '' };
+      switch (settings.sectionBreak) {
+        case 'say':
+          return { text: SECTION_BREAK_WORDS };
+        case 'pause':
+          return { text: '', pauseMs: SECTION_BREAK_PAUSE_MS };
+        default:
+          return { text: '' };
+      }
+    }
+    return { text };
   };
 };

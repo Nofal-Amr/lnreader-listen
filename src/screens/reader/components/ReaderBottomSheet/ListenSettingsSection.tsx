@@ -20,6 +20,8 @@ import ReaderSheetPreferenceItem from './ReaderSheetPreferenceItem';
 type ReaderTts = NonNullable<ChapterReaderSettings['tts']>;
 
 type Props = {
+  /** Which sub-tab to render. */
+  part: 'voice' | 'playback';
   tts: ChapterReaderSettings['tts'];
   setTts: (tts: ReaderTts) => void;
   theme: ThemeColors;
@@ -105,7 +107,12 @@ const unitLabel = (unit: TtsSkipUnit) =>
  * T2S-style listening controls: favourites, pauses, skip ranges, sleep timer,
  * auto-pause and audio-focus behaviour.
  */
-const ListenSettingsSection: React.FC<Props> = ({ tts, setTts, theme }) => {
+const ListenSettingsSection: React.FC<Props> = ({
+  part,
+  tts,
+  setTts,
+  theme,
+}) => {
   const current = useMemo<ReaderTts>(() => tts ?? {}, [tts]);
   const sleep = useSleepTimer();
   const [previewing, setPreviewing] = useState(false);
@@ -158,7 +165,7 @@ const ListenSettingsSection: React.FC<Props> = ({ tts, setTts, theme }) => {
     update({ favourites: [...favourites, favourite] });
   }, [current, favourites, isFavourite, update]);
 
-  return (
+  const voicePart = (
     <>
       <List.Item
         title={previewing ? 'Playing preview…' : 'Preview this voice'}
@@ -222,7 +229,11 @@ const ListenSettingsSection: React.FC<Props> = ({ tts, setTts, theme }) => {
           />
         </View>
       ) : null}
+    </>
+  );
 
+  const playbackPart = (
+    <>
       <List.SubHeader theme={theme}>Pauses</List.SubHeader>
       <PauseSlider
         label="After a comma"
@@ -333,6 +344,8 @@ const ListenSettingsSection: React.FC<Props> = ({ tts, setTts, theme }) => {
       />
     </>
   );
+
+  return part === 'voice' ? voicePart : playbackPart;
 };
 
 export default React.memo(ListenSettingsSection);

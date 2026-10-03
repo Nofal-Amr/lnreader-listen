@@ -42,7 +42,8 @@ const makeDeps = () => ({
   ),
   markChapterRead: jest.fn(async () => undefined),
   updateChapterProgress: jest.fn(async () => undefined),
-  speechTransform: () => (text: string) => text,
+  toTtsParagraphs: (texts: string[]) =>
+    texts.map((text, index) => ({ id: String(index), text, breaks: [] })),
 });
 
 describe('ListenQueue', () => {

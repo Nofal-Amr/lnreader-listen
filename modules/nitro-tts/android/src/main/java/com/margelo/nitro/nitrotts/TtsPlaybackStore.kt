@@ -499,7 +499,12 @@ internal object TtsPlaybackStore {
 
         val text = paragraph.text.substring(charStart, end)
         if (text.isBlank()) {
-            ownerHandler.post { advance(utteranceId) }
+            // Blank paragraph: skipped, or a section break that is pure silence.
+            val silence = if (charStart == 0) paragraph.pauseMs?.toLong() ?: 0L else 0L
+            val token = generation
+            ownerHandler.postDelayed({
+                if (generation == token && state == TtsPlaybackState.PLAYING) advance(utteranceId)
+            }, silence)
             return
         }
 

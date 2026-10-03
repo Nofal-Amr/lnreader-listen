@@ -18,7 +18,7 @@ public extension TtsParagraph {
   /**
    * Create a new instance of `TtsParagraph`.
    */
-  init(id: String, text: String, breaks: [TtsBreak]?) {
+  init(id: String, text: String, breaks: [TtsBreak]?, pauseMs: Double?) {
     self.init(std.string(id), std.string(text), { () -> bridge.std__optional_std__vector_TtsBreak__ in
       if let __unwrappedValue = breaks {
         return bridge.create_std__optional_std__vector_TtsBreak__({ () -> bridge.std__vector_TtsBreak_ in
@@ -28,6 +28,12 @@ public extension TtsParagraph {
           }
           return __vector
         }())
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = pauseMs {
+        return bridge.create_std__optional_double_(__unwrappedValue)
       } else {
         return .init()
       }
@@ -50,6 +56,18 @@ public extension TtsParagraph {
       if bridge.has_value_std__optional_std__vector_TtsBreak__(self.__breaks) {
         let __unwrapped = bridge.get_std__optional_std__vector_TtsBreak__(self.__breaks)
         return __unwrapped.map({ __item in __item })
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var pauseMs: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__pauseMs) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__pauseMs)
+        return __unwrapped
       } else {
         return nil
       }
