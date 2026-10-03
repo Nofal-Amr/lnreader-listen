@@ -25,6 +25,8 @@ export interface SpeechRuleSettings {
   emojiMode: EmojiMode;
   emojiReplacement: string;
   sectionBreak: SectionBreakMode;
+  /** Also apply custom rules to the text shown in the reader. */
+  rulesOnPage: boolean;
   rules: SpeechRule[];
 }
 
@@ -57,6 +59,7 @@ export const DEFAULT_SPEECH_RULE_SETTINGS: SpeechRuleSettings = {
   emojiMode: 'remove',
   emojiReplacement: '',
   sectionBreak: 'pause',
+  rulesOnPage: true,
   rules: DEFAULT_SPEECH_RULES,
 };
 
@@ -87,7 +90,7 @@ const EMOJI_RE = new RegExp(
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const IS_WORD = /[A-Za-z0-9_]/;
 
-const ruleRegex = (rule: SpeechRule): RegExp | null => {
+export const ruleRegex = (rule: SpeechRule): RegExp | null => {
   const flags = rule.matchCase ? 'g' : 'gi';
   try {
     if (rule.regex) return new RegExp(rule.find, flags);

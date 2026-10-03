@@ -24,7 +24,7 @@ type ReaderTts = NonNullable<ChapterReaderSettings['tts']>;
 
 type Props = {
   /** Which sub-tab to render: cleanup/speaking options, or custom rules. */
-  part: 'text' | 'rules';
+  part: 'text' | 'rules' | 'cleanup';
   tts: ChapterReaderSettings['tts'];
   setTts: (tts: ReaderTts) => void;
   theme: ThemeColors;
@@ -201,7 +201,7 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
     showToast('Rules copied to the clipboard');
   };
 
-  const textPart = (
+  const cleanupPart = (
     <>
       <List.SubHeader theme={theme}>Text cleanup</List.SubHeader>
       <View style={styles.chipSection}>
@@ -240,6 +240,19 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
         theme={theme}
       />
 
+      <ReaderSheetPreferenceItem
+        label="Apply custom rules to the page text too"
+        description="Off: your Remove/Replace rules only change what is read aloud."
+        value={speech.rulesOnPage}
+        onPress={() => setSpeech({ rulesOnPage: !speech.rulesOnPage })}
+        theme={theme}
+      />
+    </>
+  );
+
+  const textPart = (
+    <>
+      {cleanupPart}
       <List.SubHeader theme={theme}>Speaking text process</List.SubHeader>
       <ReaderSheetPreferenceItem
         label="Do not read aloud web links"
@@ -349,7 +362,9 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
     </>
   );
 
-  return part === 'rules' ? rulesPart : textPart;
+  if (part === 'rules') return rulesPart;
+  if (part === 'cleanup') return cleanupPart;
+  return textPart;
 };
 
 export default React.memo(SpeechRulesSection);

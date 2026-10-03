@@ -23,10 +23,14 @@ const readTts = () =>
   getMMKVObject<ChapterReaderSettings>(CHAPTER_READER_SETTINGS)?.tts;
 
 /** Watermark/title cleaning options, read fresh so settings apply at once. */
-export const getCleanerOptions = (): CleanerOptions => ({
-  ...DEFAULT_CLEANER_OPTIONS,
-  ...readTts()?.cleaner,
-});
+export const getCleanerOptions = (): CleanerOptions => {
+  const speech = getSpeechRuleSettings();
+  return {
+    ...DEFAULT_CLEANER_OPTIONS,
+    ...readTts()?.cleaner,
+    rules: speech.rulesOnPage ? speech.rules : [],
+  };
+};
 
 export const getSpeechRuleSettings = (): SpeechRuleSettings => ({
   ...DEFAULT_SPEECH_RULE_SETTINGS,

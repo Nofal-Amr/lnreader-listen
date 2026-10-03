@@ -4,6 +4,7 @@ import { judgeParagraph, applyVerdict } from './cleanParagraph';
 import { Detector, countWords, looksLikeTitle } from './detector';
 import { fixTitle } from './fixTitle';
 import type { Sensitivity } from './patterns';
+import { ruleRegex, type SpeechRule } from '../speechRules';
 
 const BLOCK_TAGS = new Set([
   'p',
@@ -33,6 +34,8 @@ export type CleanerOptions = {
   sensitivity: Sensitivity | 'off';
   fixTitles: boolean;
   extraSites?: string[];
+  /** Custom remove/replace rules applied to the page text. */
+  rules?: SpeechRule[];
 };
 
 const detectors = new Map<string, Detector>();
@@ -78,7 +81,11 @@ export const cleanChapterHtml = (
   options: CleanerOptions,
 ): string => {
   const det = detectorFor(options);
-  if (!det && !options.fixTitles) return html;
+  const rules = (options.rules ?? [])
+    .filter(rule => rule.enabled !== false)
+    .map(rule => [ruleRegex(rule), rule.replace] as const)
+    .filter((pair): pair is [RegExp, string] => pair[0] !== null);
+  if (!det && !options.fixTitles && !rules.length) return html;
   const $ = load(html, null, false);
 
   const leaves: Element[] = [];
@@ -99,8 +106,28 @@ export const cleanChapterHtml = (
       if (isElement(node)) walk(node);
     });
 
+  if (rules.length) {
+    const applyRules = (node: AnyNode) => {
+      if (node.type === 'text') {
+        let text = node.data;
+        for (const [re, replacement] of rules) {
+          text = text.replace(re, replacement);
+        }
+        node.data = text;
+      } else if (isElement(node)) {
+        node.children.forEach(applyRules);
+      }
+    };
+    leaves.forEach(applyRules);
+    // A paragraph that was only a removed phrase disappears entirely.
+    leaves.forEach(el => {
+      if (!blockText(el).trim() && !$(el).find('img').length) $(el).remove();
+    });
+  }
+
   if (det) {
     for (const el of leaves) {
+      if (el.parent === null) continue;
       const $el = $(el);
       const links = $el
         .find('a[href]')

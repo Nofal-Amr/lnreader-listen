@@ -29,6 +29,7 @@ import ReaderTextAlignSelector from './ReaderTextAlignSelector';
 import ReaderValueChange from './ReaderValueChange';
 import ReaderFontPicker from './ReaderFontPicker';
 import TTSTab from './TTSTab';
+import CleanTab from './CleanTab';
 import SwipeDistanceSlider from './SwipeDistanceSlider';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { StringMap } from '@i18n/types';
@@ -235,6 +236,7 @@ interface ReaderBottomSheetV2Props {
 const routes = [
   { key: 'readerTab', title: getString('readerSettings.title') },
   { key: 'generalTab', title: getString('generalSettings') },
+  { key: 'cleanTab', title: 'Clean' },
   { key: 'ttsTab', title: 'TTS' },
 ];
 
@@ -253,6 +255,7 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
       SceneMap({
         readerTab: ReaderTab,
         generalTab: GeneralTab,
+        cleanTab: CleanTab,
         ttsTab: TTSTab,
       }),
     [],
