@@ -43,7 +43,9 @@ internal object TtsPlaybackStore {
     private var paragraphs: List<TtsParagraph> = emptyList()
     private var currentIndex = 0
     private var metadata: TtsMetadata? = null
-    private var settings = TtsSettings(null, null, 1.0, 1.0, null, null, null, null, null, null, null, null)
+    private var settings =
+        TtsSettings(null, null, 1.0, 1.0, null, null, null, null, null, null, null, null, null, null)
+    private const val ONLINE_RETRY_AFTER_MS = 2 * 60_000L
     private var state = TtsPlaybackState.IDLE
     private var generation = 0L
 
@@ -77,13 +79,13 @@ internal object TtsPlaybackStore {
                 audioManager =
                     applicationContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             }
-            if (isReady && boundEngineName == settings.engineName) {
+            if (isReady && boundEngineName == localEngineName()) {
                 completion(Result.success(Unit))
                 return@runOnOwner
             }
 
             pendingInitialization.add(completion)
-            bindEngine(settings.engineName)
+            bindEngine(localEngineName())
         }
     }
 
@@ -103,7 +105,8 @@ internal object TtsPlaybackStore {
                 )
             }
             .distinctBy { it.name }
-            .sortedBy { it.label.lowercase() }
+            .sortedBy { it.label.lowercase() } +
+            TtsEngine(name = OnlineVoice.ENGINE_NAME, label = OnlineVoice.ENGINE_LABEL)
     }
 
     /** Lists voices offered by `engineName`, probing it independently of the active engine. */
@@ -112,6 +115,10 @@ internal object TtsPlaybackStore {
         engineName: String?,
         completion: (Result<List<TtsVoice>>) -> Unit,
     ) {
+        if (OnlineVoice.isOnline(engineName)) {
+            completion(Result.success(OnlineVoice.voices()))
+            return
+        }
         runOnOwner {
             var probe: TextToSpeech? = null
             val listener = TextToSpeech.OnInitListener { status ->
@@ -188,7 +195,7 @@ internal object TtsPlaybackStore {
         require(nextParagraphs.isNotEmpty()) { "The TTS queue cannot be empty." }
 
         generation += 1
-        engine?.stop()
+        stopSpeech()
         upcoming.clear()
         finishWaiting(complete = false)
         // Blank paragraphs (emptied by speech rules) keep their slot so indices
@@ -239,7 +246,7 @@ internal object TtsPlaybackStore {
 
     fun stop() {
         generation += 1
-        engine?.stop()
+        stopSpeech()
         upcoming.clear()
         finishWaiting(complete = false)
         paragraphs = emptyList()
@@ -262,7 +269,7 @@ internal object TtsPlaybackStore {
             return
         }
         generation += 1
-        engine?.stop()
+        stopSpeech()
         // Resume from the word being spoken, not the start of the sentence.
         charStart = spokenPos.coerceIn(0, paragraphs.getOrNull(currentIndex)?.text?.length ?: 0)
         state = TtsPlaybackState.PAUSED
@@ -457,14 +464,14 @@ internal object TtsPlaybackStore {
 
     /** Speaks from [charStart] to the next active break of the current paragraph. */
     private fun speakCurrent() {
-        if (engine == null || settings.engineName != boundEngineName) {
+        if (engine == null || localEngineName() != boundEngineName) {
             pendingInitialization.add { result ->
                 result.fold(
                     onSuccess = { speakCurrent() },
                     onFailure = { fail("The selected text-to-speech engine failed to initialize.") },
                 )
             }
-            bindEngine(settings.engineName)
+            bindEngine(localEngineName())
             return
         }
 
@@ -496,6 +503,11 @@ internal object TtsPlaybackStore {
             return
         }
 
+        if (OnlineVoice.isOnline(settings.engineName) && OnlineVoice.usable()) {
+            speakOnline(text, utteranceId)
+            return
+        }
+
         activeEngine.setSpeechRate(settings.rate.toFloat().coerceIn(0.1f, 4.0f))
         activeEngine.setPitch(settings.pitch.toFloat().coerceIn(0.1f, 2.0f))
         applyVoice(activeEngine)
@@ -509,7 +521,66 @@ internal object TtsPlaybackStore {
         }
     }
 
+    private fun onlineRequest(text: String) = OnlineVoice.Request(
+        text = text,
+        voice = settings.voiceIdentifier,
+        rate = settings.rate,
+        pitch = settings.pitch,
+        azureKey = settings.azureKey,
+        azureRegion = settings.azureRegion,
+    )
+
+    /** Speaks via the online neural voice; any failure drops to the device voice. */
+    private fun speakOnline(text: String, utteranceId: String) {
+        val context = checkNotNull(applicationContext)
+        OnlineVoice.speak(
+            context,
+            onlineRequest(text),
+            utteranceId,
+            sleepTimer.volume(),
+            onStart = { progressListener.onStart(utteranceId) },
+            onDone = { advance(utteranceId) },
+            onError = { message ->
+                if (utteranceId != currentUtteranceId) return@speak
+                OnlineVoice.disableFor(ONLINE_RETRY_AFTER_MS)
+                errorListeners.emit("$message Using the phone voice for now.")
+                // Same position, now spoken by the local engine.
+                speakCurrent()
+            },
+        )
+        nextUtteranceText()?.let { OnlineVoice.prefetch(onlineRequest(it)) }
+    }
+
+    /** Text of the utterance after the current one, for online prefetching. */
+    private fun nextUtteranceText(): String? {
+        val splitClauses = (settings.pauseCommaMs ?: 0.0) > 0
+        val paragraph = paragraphs.getOrNull(currentIndex) ?: return null
+        if (utteranceEnd < paragraph.text.length) {
+            val (end, _) = TtsSpeechCursor.utteranceEnd(paragraph, utteranceEnd, splitClauses)
+            return paragraph.text.substring(utteranceEnd, end).takeIf { it.isNotBlank() }
+        }
+        val next = paragraphs.getOrNull(currentIndex + 1)
+            ?: upcoming.firstOrNull()?.paragraphs?.firstOrNull()
+            ?: return null
+        val (end, _) = TtsSpeechCursor.utteranceEnd(next, 0, splitClauses)
+        return next.text.substring(0, end).takeIf { it.isNotBlank() }
+    }
+
+    /** The device engine to bind: the online voice uses the default one as fallback. */
+    private fun localEngineName(): String? =
+        settings.engineName.takeUnless { OnlineVoice.isOnline(it) }
+
+    private fun stopSpeech() {
+        engine?.stop()
+        OnlineVoice.stop()
+    }
+
     private fun applyVoice(activeEngine: TextToSpeech) {
+        if (OnlineVoice.isOnline(settings.engineName)) {
+            // Fallback from the online voice: default device voice, in English.
+            activeEngine.setLanguage(Locale.US)
+            return
+        }
         val voiceIdentifier = settings.voiceIdentifier
         if (voiceIdentifier.isNullOrBlank()) {
             activeEngine.setLanguage(Locale.getDefault())

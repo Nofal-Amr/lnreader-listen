@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Chip } from 'react-native-paper';
+import { Chip, TextInput } from 'react-native-paper';
 
 import { List, Slider } from '@components';
 import { Tts, type TtsSkipUnit } from '@modules/nitro-tts';
@@ -25,6 +25,9 @@ type Props = {
   theme: ThemeColors;
 };
 
+const ONLINE_ENGINE = 'lnreader.online';
+const ONLINE_NOTE =
+  "Online voices use Microsoft Edge's Read Aloud service by default (free, unofficial, may stop working; the phone voice takes over if it fails). An Azure Speech key uses the official service instead.";
 const PREVIEW_TEXT =
   'This is how this voice sounds. Chapter one, the beginning.';
 const SKIP_UNITS: TtsSkipUnit[] = ['clause', 'sentence', 'paragraph'];
@@ -195,6 +198,31 @@ const ListenSettingsSection: React.FC<Props> = ({ tts, setTts, theme }) => {
         </View>
       ) : null}
 
+      {current.engine?.name === ONLINE_ENGINE ? (
+        <View style={styles.chipSection}>
+          <Text style={[styles.chipLabel, { color: theme.onSurfaceVariant }]}>
+            {ONLINE_NOTE}
+          </Text>
+          <TextInput
+            mode="outlined"
+            label="Azure Speech key (optional)"
+            secureTextEntry
+            defaultValue={current.azureKey}
+            onEndEditing={e => update({ azureKey: e.nativeEvent.text.trim() })}
+          />
+          <TextInput
+            mode="outlined"
+            label="Azure region, e.g. eastus"
+            autoCapitalize="none"
+            defaultValue={current.azureRegion}
+            onEndEditing={e =>
+              update({ azureRegion: e.nativeEvent.text.trim() })
+            }
+            style={styles.input}
+          />
+        </View>
+      ) : null}
+
       <List.SubHeader theme={theme}>Pauses</List.SubHeader>
       <PauseSlider
         label="After a comma"
@@ -310,6 +338,9 @@ const ListenSettingsSection: React.FC<Props> = ({ tts, setTts, theme }) => {
 export default React.memo(ListenSettingsSection);
 
 const styles = StyleSheet.create({
+  input: {
+    marginTop: 8,
+  },
   sliderSection: {
     paddingHorizontal: 16,
     paddingVertical: 8,

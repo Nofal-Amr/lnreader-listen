@@ -53,7 +53,13 @@ data class TtsSettings(
   val mixWithOthers: Boolean?,
   @DoNotStrip
   @Keep
-  val autoPauseMinutes: Double?
+  val autoPauseMinutes: Double?,
+  @DoNotStrip
+  @Keep
+  val azureKey: String?,
+  @DoNotStrip
+  @Keep
+  val azureRegion: String?
 ) {
   /* primary constructor */
 
@@ -72,6 +78,8 @@ data class TtsSettings(
       && Objects.deepEquals(this.forwardUnit, other.forwardUnit)
       && Objects.deepEquals(this.mixWithOthers, other.mixWithOthers)
       && Objects.deepEquals(this.autoPauseMinutes, other.autoPauseMinutes)
+      && Objects.deepEquals(this.azureKey, other.azureKey)
+      && Objects.deepEquals(this.azureRegion, other.azureRegion)
   }
 
   override fun hashCode(): Int {
@@ -87,7 +95,9 @@ data class TtsSettings(
       rewindUnit,
       forwardUnit,
       mixWithOthers,
-      autoPauseMinutes
+      autoPauseMinutes,
+      azureKey,
+      azureRegion
     ).contentDeepHashCode()
   }
 
@@ -99,8 +109,8 @@ data class TtsSettings(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double, pauseCommaMs: Double?, pauseSentenceMs: Double?, pauseParagraphMs: Double?, pauseChapterMs: Double?, rewindUnit: TtsSkipUnit?, forwardUnit: TtsSkipUnit?, mixWithOthers: Boolean?, autoPauseMinutes: Double?): TtsSettings {
-      return TtsSettings(engineName, voiceIdentifier, rate, pitch, pauseCommaMs, pauseSentenceMs, pauseParagraphMs, pauseChapterMs, rewindUnit, forwardUnit, mixWithOthers, autoPauseMinutes)
+    private fun fromCpp(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double, pauseCommaMs: Double?, pauseSentenceMs: Double?, pauseParagraphMs: Double?, pauseChapterMs: Double?, rewindUnit: TtsSkipUnit?, forwardUnit: TtsSkipUnit?, mixWithOthers: Boolean?, autoPauseMinutes: Double?, azureKey: String?, azureRegion: String?): TtsSettings {
+      return TtsSettings(engineName, voiceIdentifier, rate, pitch, pauseCommaMs, pauseSentenceMs, pauseParagraphMs, pauseChapterMs, rewindUnit, forwardUnit, mixWithOthers, autoPauseMinutes, azureKey, azureRegion)
     }
   }
 }

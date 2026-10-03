@@ -28,6 +28,8 @@ export const toNativeTtsSettings = (settings: ReaderTts): TtsSettings => ({
   forwardUnit: settings?.forwardUnit ?? TTS_DEFAULTS.forwardUnit,
   mixWithOthers: settings?.mixWithOthers ?? TTS_DEFAULTS.mixWithOthers,
   autoPauseMinutes: settings?.autoPauseMinutes ?? TTS_DEFAULTS.autoPauseMinutes,
+  azureKey: settings?.azureKey || undefined,
+  azureRegion: settings?.azureRegion || undefined,
 });
 
 /** True when two persisted TTS settings would behave identically. */

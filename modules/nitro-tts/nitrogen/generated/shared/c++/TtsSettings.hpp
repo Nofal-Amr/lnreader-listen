@@ -54,10 +54,12 @@ namespace margelo::nitro::nitrotts {
     std::optional<TtsSkipUnit> forwardUnit     SWIFT_PRIVATE;
     std::optional<bool> mixWithOthers     SWIFT_PRIVATE;
     std::optional<double> autoPauseMinutes     SWIFT_PRIVATE;
+    std::optional<std::string> azureKey     SWIFT_PRIVATE;
+    std::optional<std::string> azureRegion     SWIFT_PRIVATE;
 
   public:
     TtsSettings() = default;
-    explicit TtsSettings(std::optional<std::string> engineName, std::optional<std::string> voiceIdentifier, double rate, double pitch, std::optional<double> pauseCommaMs, std::optional<double> pauseSentenceMs, std::optional<double> pauseParagraphMs, std::optional<double> pauseChapterMs, std::optional<TtsSkipUnit> rewindUnit, std::optional<TtsSkipUnit> forwardUnit, std::optional<bool> mixWithOthers, std::optional<double> autoPauseMinutes): engineName(engineName), voiceIdentifier(voiceIdentifier), rate(rate), pitch(pitch), pauseCommaMs(pauseCommaMs), pauseSentenceMs(pauseSentenceMs), pauseParagraphMs(pauseParagraphMs), pauseChapterMs(pauseChapterMs), rewindUnit(rewindUnit), forwardUnit(forwardUnit), mixWithOthers(mixWithOthers), autoPauseMinutes(autoPauseMinutes) {}
+    explicit TtsSettings(std::optional<std::string> engineName, std::optional<std::string> voiceIdentifier, double rate, double pitch, std::optional<double> pauseCommaMs, std::optional<double> pauseSentenceMs, std::optional<double> pauseParagraphMs, std::optional<double> pauseChapterMs, std::optional<TtsSkipUnit> rewindUnit, std::optional<TtsSkipUnit> forwardUnit, std::optional<bool> mixWithOthers, std::optional<double> autoPauseMinutes, std::optional<std::string> azureKey, std::optional<std::string> azureRegion): engineName(engineName), voiceIdentifier(voiceIdentifier), rate(rate), pitch(pitch), pauseCommaMs(pauseCommaMs), pauseSentenceMs(pauseSentenceMs), pauseParagraphMs(pauseParagraphMs), pauseChapterMs(pauseChapterMs), rewindUnit(rewindUnit), forwardUnit(forwardUnit), mixWithOthers(mixWithOthers), autoPauseMinutes(autoPauseMinutes), azureKey(azureKey), azureRegion(azureRegion) {}
 
   public:
     friend bool operator==(const TtsSettings& lhs, const TtsSettings& rhs) = default;
@@ -84,7 +86,9 @@ namespace margelo::nitro {
         JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rewindUnit"))),
         JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "forwardUnit"))),
         JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "mixWithOthers"))),
-        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes")))
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "azureKey"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "azureRegion")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrotts::TtsSettings& arg) {
@@ -101,6 +105,8 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "forwardUnit"), JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::toJSI(runtime, arg.forwardUnit));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "mixWithOthers"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.mixWithOthers));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.autoPauseMinutes));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "azureKey"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.azureKey));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "azureRegion"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.azureRegion));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -123,6 +129,8 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<margelo::nitro::nitrotts::TtsSkipUnit>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "forwardUnit")))) return false;
       if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "mixWithOthers")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "autoPauseMinutes")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "azureKey")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "azureRegion")))) return false;
       return true;
     }
   };

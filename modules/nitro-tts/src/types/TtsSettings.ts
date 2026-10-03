@@ -33,4 +33,8 @@ export interface TtsSettings {
   mixWithOthers?: boolean;
   /** Pause after this many minutes without user interaction; 0 disables. */
   autoPauseMinutes?: number;
+  /** Optional Azure Speech key: online voices then use the official API. */
+  azureKey?: string;
+  /** Azure region for `azureKey`, e.g. `eastus`. */
+  azureRegion?: string;
 }

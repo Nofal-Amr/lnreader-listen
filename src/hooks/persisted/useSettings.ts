@@ -241,6 +241,8 @@ export interface ChapterReaderSettings {
     autoPauseMinutes?: number;
     shakeToExtend?: boolean;
     favourites?: TtsFavourite[];
+    azureKey?: string;
+    azureRegion?: string;
     cleaner?: Partial<CleanerOptions>;
     speech?: Partial<SpeechRuleSettings>;
   };

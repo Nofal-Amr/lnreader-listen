@@ -18,7 +18,7 @@ public extension TtsSettings {
   /**
    * Create a new instance of `TtsSettings`.
    */
-  init(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double, pauseCommaMs: Double?, pauseSentenceMs: Double?, pauseParagraphMs: Double?, pauseChapterMs: Double?, rewindUnit: TtsSkipUnit?, forwardUnit: TtsSkipUnit?, mixWithOthers: Bool?, autoPauseMinutes: Double?) {
+  init(engineName: String?, voiceIdentifier: String?, rate: Double, pitch: Double, pauseCommaMs: Double?, pauseSentenceMs: Double?, pauseParagraphMs: Double?, pauseChapterMs: Double?, rewindUnit: TtsSkipUnit?, forwardUnit: TtsSkipUnit?, mixWithOthers: Bool?, autoPauseMinutes: Double?, azureKey: String?, azureRegion: String?) {
     self.init({ () -> bridge.std__optional_std__string_ in
       if let __unwrappedValue = engineName {
         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
@@ -76,6 +76,18 @@ public extension TtsSettings {
     }(), { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = autoPauseMinutes {
         return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = azureKey {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = azureRegion {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
       } else {
         return .init()
       }
@@ -192,6 +204,30 @@ public extension TtsSettings {
       if bridge.has_value_std__optional_double_(self.__autoPauseMinutes) {
         let __unwrapped = bridge.get_std__optional_double_(self.__autoPauseMinutes)
         return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var azureKey: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__azureKey) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__azureKey)
+        return String(__unwrapped)
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var azureRegion: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__azureRegion) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__azureRegion)
+        return String(__unwrapped)
       } else {
         return nil
       }

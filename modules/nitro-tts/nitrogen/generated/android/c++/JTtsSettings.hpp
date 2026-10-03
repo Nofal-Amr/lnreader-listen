@@ -58,6 +58,10 @@ namespace margelo::nitro::nitrotts {
       jni::local_ref<jni::JBoolean> mixWithOthers = this->getFieldValue(fieldMixWithOthers);
       static const auto fieldAutoPauseMinutes = clazz->getField<jni::JDouble>("autoPauseMinutes");
       jni::local_ref<jni::JDouble> autoPauseMinutes = this->getFieldValue(fieldAutoPauseMinutes);
+      static const auto fieldAzureKey = clazz->getField<jni::JString>("azureKey");
+      jni::local_ref<jni::JString> azureKey = this->getFieldValue(fieldAzureKey);
+      static const auto fieldAzureRegion = clazz->getField<jni::JString>("azureRegion");
+      jni::local_ref<jni::JString> azureRegion = this->getFieldValue(fieldAzureRegion);
       return TtsSettings(
         engineName != nullptr ? std::make_optional(engineName->toStdString()) : std::nullopt,
         voiceIdentifier != nullptr ? std::make_optional(voiceIdentifier->toStdString()) : std::nullopt,
@@ -70,7 +74,9 @@ namespace margelo::nitro::nitrotts {
         rewindUnit != nullptr ? std::make_optional(rewindUnit->toCpp()) : std::nullopt,
         forwardUnit != nullptr ? std::make_optional(forwardUnit->toCpp()) : std::nullopt,
         mixWithOthers != nullptr ? std::make_optional(static_cast<bool>(mixWithOthers->value())) : std::nullopt,
-        autoPauseMinutes != nullptr ? std::make_optional(autoPauseMinutes->value()) : std::nullopt
+        autoPauseMinutes != nullptr ? std::make_optional(autoPauseMinutes->value()) : std::nullopt,
+        azureKey != nullptr ? std::make_optional(azureKey->toStdString()) : std::nullopt,
+        azureRegion != nullptr ? std::make_optional(azureRegion->toStdString()) : std::nullopt
       );
     }
 
@@ -80,7 +86,7 @@ namespace margelo::nitro::nitrotts {
      */
     [[maybe_unused]]
     static jni::local_ref<JTtsSettings::javaobject> fromCpp(const TtsSettings& value) {
-      using JSignature = JTtsSettings(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<JTtsSkipUnit>, jni::alias_ref<JTtsSkipUnit>, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JDouble>);
+      using JSignature = JTtsSettings(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<JTtsSkipUnit>, jni::alias_ref<JTtsSkipUnit>, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -96,7 +102,9 @@ namespace margelo::nitro::nitrotts {
         value.rewindUnit.has_value() ? JTtsSkipUnit::fromCpp(value.rewindUnit.value()) : nullptr,
         value.forwardUnit.has_value() ? JTtsSkipUnit::fromCpp(value.forwardUnit.value()) : nullptr,
         value.mixWithOthers.has_value() ? jni::JBoolean::valueOf(value.mixWithOthers.value()) : nullptr,
-        value.autoPauseMinutes.has_value() ? jni::JDouble::valueOf(value.autoPauseMinutes.value()) : nullptr
+        value.autoPauseMinutes.has_value() ? jni::JDouble::valueOf(value.autoPauseMinutes.value()) : nullptr,
+        value.azureKey.has_value() ? jni::make_jstring(value.azureKey.value()) : nullptr,
+        value.azureRegion.has_value() ? jni::make_jstring(value.azureRegion.value()) : nullptr
       );
     }
   };
