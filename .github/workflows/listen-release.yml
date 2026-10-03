@@ -73,8 +73,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: listen-r${{ github.run_number }}
-          name: LNReader Listen r${{ github.run_number }}
+          name: Vonkai Novel Reader r${{ github.run_number }}
           body: |
-            Install LNReader-Listen-r${{ github.run_number }}.apk. It installs next to the official LNReader.
+            Install LNReader-Listen-r${{ github.run_number }}.apk. Vonkai Novel Reader installs next to the official LNReader.
             Commit: ${{ github.sha }}
           files: LNReader-Listen-r${{ github.run_number }}.apk

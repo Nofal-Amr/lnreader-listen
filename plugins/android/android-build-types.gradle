@@ -36,7 +36,7 @@ android {
             matchingFallbacks = ["release"]
             versionNameSuffix "-listen"
             signingConfig signingConfigs.debug
-            resValue "string", "app_name", "LNReader Listen"
+            resValue "string", "app_name", "Vonkai Novel Reader"
         }
     }
 }
