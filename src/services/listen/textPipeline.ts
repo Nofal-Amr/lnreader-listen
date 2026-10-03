@@ -12,6 +12,7 @@ import {
   type SpokenParagraph,
 } from './speechRules';
 import { computeBreaks } from './computeBreaks';
+import { dropRepeats } from './dropRepeats';
 import type { TtsParagraph } from '@modules/nitro-tts';
 
 export const DEFAULT_CLEANER_OPTIONS: CleanerOptions = {
@@ -58,7 +59,7 @@ export const getSpeechTransform = (): ((text: string) => SpokenParagraph) => {
  */
 export const toTtsParagraphs = (texts: string[]): TtsParagraph[] => {
   const speak = getSpeechTransform();
-  return texts.map((raw, index) => {
+  return dropRepeats(texts).map((raw, index) => {
     const { text, pauseMs } = speak(raw);
     return {
       id: String(index),
