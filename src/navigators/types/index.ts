@@ -38,6 +38,7 @@ export type BottomNavigatorParamList = {
   Updates: undefined;
   History: undefined;
   Browse: undefined;
+  Browser: undefined;
   More: undefined;
 };
 

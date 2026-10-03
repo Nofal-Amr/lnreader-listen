@@ -1,0 +1,136 @@
+diff --git a/android/src/main/java/com/reactnativecommunity/webview/AdBlocker.java b/android/src/main/java/com/reactnativecommunity/webview/AdBlocker.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..bca66027860e04e33d9ff81c119b82553caabc65
+--- /dev/null
++++ b/android/src/main/java/com/reactnativecommunity/webview/AdBlocker.java	
+@@ -0,0 +1,93 @@
++package com.reactnativecommunity.webview;
++
++import android.content.Context;
++import android.os.SystemClock;
++import android.webkit.WebResourceResponse;
++
++import java.io.BufferedReader;
++import java.io.ByteArrayInputStream;
++import java.io.File;
++import java.io.FileReader;
++import java.util.Collections;
++import java.util.HashSet;
++import java.util.Locale;
++import java.util.Set;
++
++/**
++ * LNReader Listen: network-level ad blocking for every WebView.
++ *
++ * JS writes the blocked hosts (from EasyList / uBlock-style lists) to
++ * filesDir/adblock/hosts.txt and per-site exceptions to allow.txt. Deleting
++ * hosts.txt turns blocking off. Files are re-read when they change.
++ */
++public final class AdBlocker {
++  private static final long CHECK_INTERVAL_MS = 3000;
++  private static volatile Set<String> hosts = Collections.emptySet();
++  private static volatile Set<String> allow = Collections.emptySet();
++  private static long hostsStamp = -1;
++  private static long allowStamp = -1;
++  private static long lastCheck = 0;
++
++  private AdBlocker() {}
++
++  static WebResourceResponse emptyResponse() {
++    return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
++  }
++
++  static boolean shouldBlock(Context context, String requestHost, String pageHost) {
++    if (context == null || requestHost == null) return false;
++    reloadIfChanged(context);
++    Set<String> blocked = hosts;
++    if (blocked.isEmpty()) return false;
++    String host = requestHost.toLowerCase(Locale.ROOT);
++    if (pageHost != null) {
++      String page = pageHost.toLowerCase(Locale.ROOT);
++      if (host.equals(page) || matches(allow, page)) return false;
++    }
++    return matches(blocked, host);
++  }
++
++  /** a.b.example.com matches entries a.b.example.com, b.example.com, example.com. */
++  private static boolean matches(Set<String> set, String host) {
++    String current = host;
++    while (true) {
++      if (set.contains(current)) return true;
++      int dot = current.indexOf('.');
++      if (dot < 0 || current.indexOf('.', dot + 1) < 0) return false;
++      current = current.substring(dot + 1);
++    }
++  }
++
++  private static synchronized void reloadIfChanged(Context context) {
++    long now = SystemClock.elapsedRealtime();
++    if (now - lastCheck < CHECK_INTERVAL_MS && hostsStamp != -1) return;
++    lastCheck = now;
++    File dir = new File(context.getFilesDir(), "adblock");
++    File hostsFile = new File(dir, "hosts.txt");
++    File allowFile = new File(dir, "allow.txt");
++    long hs = hostsFile.exists() ? hostsFile.lastModified() : 0;
++    long as = allowFile.exists() ? allowFile.lastModified() : 0;
++    if (hs != hostsStamp) {
++      hostsStamp = hs;
++      hosts = hs == 0 ? Collections.<String>emptySet() : read(hostsFile);
++    }
++    if (as != allowStamp) {
++      allowStamp = as;
++      allow = as == 0 ? Collections.<String>emptySet() : read(allowFile);
++    }
++  }
++
++  private static Set<String> read(File file) {
++    Set<String> out = new HashSet<>();
++    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
++      String line;
++      while ((line = reader.readLine()) != null) {
++        String host = line.trim().toLowerCase(Locale.ROOT);
++        if (!host.isEmpty() && !host.startsWith("#")) out.add(host);
++      }
++    } catch (Exception ignored) {
++      // A broken list must never break page loading.
++    }
++    return Collections.unmodifiableSet(out);
++  }
++}
+diff --git a/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java b/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
+index 0287e1c56b07b6c23b4049f3992d88b86fdc5c79..4f032fdaa7d34ab026d3fd9e80be704afdce9414 100644
+--- a/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java	
++++ b/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java	
+@@ -45,6 +45,20 @@ public class RNCWebViewClient extends WebViewClient {
+     protected RNCWebView.ProgressChangedFilter progressChangedFilter = null;
+     protected @Nullable RNCBasicAuthCredential basicAuthCredential = null;
+ 
++    // LNReader Listen: host of the page being shown, for ad-block exceptions.
++    // shouldInterceptRequest runs off the UI thread and cannot call getUrl().
++    protected volatile @Nullable String mPageHost = null;
++
++    @Override
++    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
++        android.net.Uri uri = request.getUrl();
++        if (uri != null && !request.isForMainFrame()
++            && AdBlocker.shouldBlock(view.getContext().getApplicationContext(), uri.getHost(), mPageHost)) {
++            return AdBlocker.emptyResponse();
++        }
++        return super.shouldInterceptRequest(view, request);
++    }
++
+     public void setBasicAuthCredential(@Nullable RNCBasicAuthCredential credential) {
+         basicAuthCredential = credential;
+     }
+@@ -85,6 +99,11 @@ public class RNCWebViewClient extends WebViewClient {
+     public void onPageStarted(WebView webView, String url, Bitmap favicon) {
+       super.onPageStarted(webView, url, favicon);
+       mLastLoadFailed = false;
++      try {
++        mPageHost = android.net.Uri.parse(url).getHost();
++      } catch (Exception ignored) {
++        mPageHost = null;
++      }
+ 
+       RNCWebView reactWebView = (RNCWebView) webView;
+       reactWebView.callInjectedJavaScriptBeforeContentLoaded();

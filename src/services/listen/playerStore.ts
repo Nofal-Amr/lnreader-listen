@@ -24,7 +24,13 @@ import {
 } from './ListenQueue';
 import { loadChapterHtml } from './loadChapterHtml';
 import { getSharedSession, onSharedSession } from './sharedSession';
-import { hasSpeech, toTtsParagraphs } from './textPipeline';
+import { extractWebPage, type WebPage } from '@services/browser/extractWebPage';
+import {
+  fetchPageHtml,
+  hostOf,
+  webListenQueue,
+} from '@services/browser/webListenQueue';
+import { getCleanerOptions, hasSpeech, toTtsParagraphs } from './textPipeline';
 import { toNativeTtsSettings } from './ttsSettings';
 
 export type PlayerCommand =
@@ -45,6 +51,10 @@ type PlayerState = {
   /** Text of the current chapter, indexed like the native queue. */
   paragraphs: string[];
   loadingChapter: boolean;
+  /** Where the current audio comes from: the library or a Browser page. */
+  source: 'library' | 'web';
+  webPage?: WebPage;
+  userAgent?: string;
 };
 
 const initial: PlayerState = {
@@ -59,6 +69,7 @@ const initial: PlayerState = {
   error: null,
   paragraphs: [],
   loadingChapter: false,
+  source: 'library',
 };
 
 export const usePlayerStore = create<PlayerState>(() => initial);
@@ -91,7 +102,88 @@ export const setNowPlaying = (
   novel: ListenNovel,
   chapter: ListenChapter,
   paragraphs: string[],
-) => usePlayerStore.setState({ novel, chapter, paragraphs, error: null });
+) =>
+  usePlayerStore.setState({
+    novel,
+    chapter,
+    paragraphs,
+    error: null,
+    source: 'library',
+    webPage: undefined,
+  });
+
+const webNowPlaying = (page: WebPage) => ({
+  novel: { id: -1, pluginId: 'browser', name: hostOf(page.url), cover: null },
+  chapter: {
+    id: -1,
+    novelId: -1,
+    path: page.url,
+    name: page.title,
+    position: 0,
+    page: '1',
+  },
+  paragraphs: page.paragraphs,
+  webPage: page,
+  source: 'web' as const,
+});
+
+webListenQueue.subscribe(event => {
+  if (event.type === 'page') {
+    usePlayerStore.setState(webNowPlaying(event.page));
+  } else {
+    usePlayerStore.setState({ error: event.reason });
+  }
+});
+
+/** Reads a Browser page aloud from `startIndex`, then follows its next links. */
+export const playWebPage = async (
+  page: WebPage,
+  startIndex = 0,
+  userAgent?: string,
+) => {
+  usePlayerStore.setState({ loadingChapter: true, error: null });
+  try {
+    const session = await getSharedSession();
+    const paragraphs = toTtsParagraphs(page.paragraphs);
+    if (!hasSpeech(paragraphs)) {
+      throw new Error('No readable text was found on this page.');
+    }
+    await session.load(
+      paragraphs,
+      startIndex,
+      {
+        novelName: hostOf(page.url),
+        chapterName: fixTitle(page.title),
+        chapterId: page.url,
+      },
+      toNativeTtsSettings(readerTts()),
+    );
+    await session.play();
+    const agent = userAgent ?? usePlayerStore.getState().userAgent;
+    usePlayerStore.setState({ ...webNowPlaying(page), userAgent: agent });
+    webListenQueue.start(session, page, agent);
+  } catch (cause) {
+    usePlayerStore.setState({
+      error: cause instanceof Error ? cause.message : String(cause),
+    });
+  } finally {
+    usePlayerStore.setState({ loadingChapter: false });
+  }
+};
+
+const playWebUrl = async (url: string) => {
+  const { userAgent } = usePlayerStore.getState();
+  usePlayerStore.setState({ loadingChapter: true });
+  try {
+    const html = await fetchPageHtml(url, userAgent);
+    await playWebPage(extractWebPage(html, url, getCleanerOptions()));
+  } catch {
+    usePlayerStore.setState({
+      loadingChapter: false,
+      error: 'That page could not be loaded.',
+    });
+  }
+};
 
 const readerTts = () =>
   getMMKVObject<ChapterReaderSettings>(CHAPTER_READER_SETTINGS)?.tts;
@@ -139,7 +231,21 @@ export const playChapter = async (
 
 /** Previous / next chapter from the player, independent of the reader. */
 export const playAdjacentChapter = async (direction: 'next' | 'prev') => {
-  const { novel, chapter } = usePlayerStore.getState();
+  const { novel, chapter, source, webPage } = usePlayerStore.getState();
+  if (source === 'web') {
+    const url = direction === 'next' ? webPage?.nextUrl : webPage?.prevUrl;
+    if (url) {
+      await playWebUrl(url);
+    } else {
+      usePlayerStore.setState({
+        error:
+          direction === 'next'
+            ? 'No next page link was found.'
+            : 'No previous page link was found.',
+      });
+    }
+    return;
+  }
   if (!novel || !chapter) return;
   const query = direction === 'next' ? getNextChapter : getPrevChapter;
   const target = await query(
@@ -171,6 +277,7 @@ export const runPlayerCommand = async (command: PlayerCommand) => {
       return session.replayCurrent();
     case 'stop':
       listenQueue.stop();
+      webListenQueue.stop();
       usePlayerStore.setState({
         novel: undefined,
         chapter: undefined,

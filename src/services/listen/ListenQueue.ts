@@ -10,6 +10,7 @@ import type { ChapterInfo } from '@database/types';
 import { fixTitle } from './cleaner/fixTitle';
 import { extractTtsParagraphs } from './extractTtsParagraphs';
 import { loadChapterHtml } from './loadChapterHtml';
+import { claimPlayback } from './sharedSession';
 import { toTtsParagraphs } from './textPipeline';
 
 export type ListenNovel = {
@@ -37,6 +38,8 @@ export type ListenQueueDeps = {
   markChapterRead: (id: number) => Promise<void>;
   updateChapterProgress: (id: number, progress: number) => Promise<void>;
   toTtsParagraphs: (texts: string[]) => TtsParagraph[];
+  /** Takes over the shared session from the other playback source. */
+  claim?: (release: () => void) => void;
 };
 
 type Session = Pick<
@@ -120,6 +123,16 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
     })().catch(() => undefined);
   };
 
+  function stopQueue() {
+    run += 1;
+    subscription?.remove();
+    subscription = undefined;
+    session?.clearUpcoming().catch(() => undefined);
+    session = undefined;
+    current = undefined;
+    lastQueued = undefined;
+  }
+
   return {
     start(
       nextSession: Session,
@@ -127,6 +140,7 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
       chapter: ListenChapter,
       excludedScanlators?: string[],
     ) {
+      deps.claim?.(stopQueue);
       run += 1;
       subscription?.remove();
       session = nextSession;
@@ -138,15 +152,7 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
         nextSession.addOnChapterChangedListener(handleChapterChanged);
       queueAfter(chapter, run).catch(() => undefined);
     },
-    stop() {
-      run += 1;
-      subscription?.remove();
-      subscription = undefined;
-      session?.clearUpcoming().catch(() => undefined);
-      session = undefined;
-      current = undefined;
-      lastQueued = undefined;
-    },
+    stop: stopQueue,
     currentChapterId: (): number | undefined => current?.id,
     currentChapter: (): ListenChapter | undefined => current,
     queuedParagraphs: (id: number): string[] | undefined => queuedTexts.get(id),
@@ -176,4 +182,5 @@ export const listenQueue = createListenQueue({
   markChapterRead,
   updateChapterProgress,
   toTtsParagraphs,
+  claim: claimPlayback,
 });

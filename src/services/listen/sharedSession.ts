@@ -33,3 +33,14 @@ export const getSharedSession = (): Promise<TtsSession> => {
   }
   return sessionPromise;
 };
+
+let releaseCurrent: (() => void) | null = null;
+
+/**
+ * Only one source (library chapters or browser pages) may feed chapters to the
+ * shared session; starting one stops the other's queue.
+ */
+export const claimPlayback = (release: () => void) => {
+  if (releaseCurrent && releaseCurrent !== release) releaseCurrent();
+  releaseCurrent = release;
+};

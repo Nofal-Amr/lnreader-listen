@@ -18,11 +18,19 @@ import Icon from '@react-native-vector-icons/material-design-icons';
 import { MaterialDesignIconName } from '@type/icon';
 import { BottomTabBar } from '@components';
 import MiniPlayer from '@screens/player/MiniPlayer';
+import BrowserScreen from '@screens/browser/BrowserScreen';
+import {
+  useBrowserChrome,
+  useBrowserStore,
+} from '@services/browser/browserStore';
 
 const Tab = createBottomTabNavigator<BottomNavigatorParamList>();
 
 const BottomNavigator = () => {
   const theme = useTheme();
+  const browserFullscreen = useBrowserStore(s => s.prefs.fullscreen);
+  const browserChromeHidden = useBrowserChrome(s => s.hidden);
+  const browserImmersive = browserFullscreen && browserChromeHidden;
 
   const {
     showHistoryTab = true,
@@ -52,6 +60,9 @@ const BottomNavigator = () => {
         case 'Browse':
           iconName = 'compass-outline';
           break;
+        case 'Browser':
+          iconName = 'web';
+          break;
         case 'More':
           iconName = 'dots-horizontal';
           break;
@@ -65,18 +76,21 @@ const BottomNavigator = () => {
   );
 
   const renderTabBar = useCallback(
-    (props: any) => (
-      <>
-        <MiniPlayer />
-        <BottomTabBar
-          {...props}
-          theme={theme}
-          showLabelsInNav={showLabelsInNav}
-          renderIcon={renderIcon}
-        />
-      </>
-    ),
-    [theme, showLabelsInNav, renderIcon],
+    (props: any) =>
+      // Full-screen browsing hides every bar (OLED friendly).
+      browserImmersive &&
+      props.state?.routes?.[props.state.index]?.name === 'Browser' ? null : (
+        <>
+          <MiniPlayer />
+          <BottomTabBar
+            {...props}
+            theme={theme}
+            showLabelsInNav={showLabelsInNav}
+            renderIcon={renderIcon}
+          />
+        </>
+      ),
+    [theme, showLabelsInNav, renderIcon, browserImmersive],
   );
 
   return (
@@ -126,6 +140,14 @@ const BottomNavigator = () => {
           tabBarBadge: pluginsWithUpdate
             ? pluginsWithUpdate.toString()
             : undefined,
+        }}
+      />
+      <Tab.Screen
+        name="Browser"
+        component={BrowserScreen}
+        options={{
+          title: 'Browser',
+          freezeOnBlur: false,
         }}
       />
       <Tab.Screen
