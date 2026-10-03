@@ -18,6 +18,10 @@ describe('paragraph matching between page and player', () => {
     expect(findParagraphIndex(paragraphs, 'lin feng opened his eyes')).toBe(1);
   });
 
+  it('finds a selection made in the middle of a paragraph', () => {
+    expect(findParagraphIndex(paragraphs, 'looked at the sky')).toBe(1);
+  });
+
   it('returns -1 for unknown or empty text', () => {
     expect(findParagraphIndex(paragraphs, 'Comments (12)')).toBe(-1);
     expect(findParagraphIndex(paragraphs, '  ')).toBe(-1);

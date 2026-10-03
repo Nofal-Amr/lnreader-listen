@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   BackHandler,
   Pressable,
   StatusBar,
@@ -15,7 +16,7 @@ import type {
   WebViewProgressEvent,
   WebViewSource,
 } from 'react-native-webview/lib/WebViewTypes';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SystemBars } from 'react-native-edge-to-edge';
 import Icon from '@react-native-vector-icons/material-design-icons';
@@ -43,13 +44,19 @@ import BrowserMenu from './BrowserMenu';
 import { readerModeHtml } from './readerModeHtml';
 
 const STALL_MS = 10_000;
-const CHROME_HIDE_MS = 3_000;
+const CHROME_HIDE_MS = 4_000;
+const TOOLBAR_HEIGHT = 56;
 
 type PageMessage =
   | { type: 'page'; url: string; title: string; ua: string; html: string }
   | { type: 'tap'; text: string }
   | { type: 'visible'; text: string }
   | { type: 'scroll'; dir: 'up' | 'down'; atTop: boolean };
+
+const SELECTION_MENU = [
+  { label: 'Read from here', key: 'readFrom' },
+  { label: 'Read selection', key: 'readSelection' },
+];
 
 const IconButton = ({
   icon,
@@ -77,14 +84,16 @@ const IconButton = ({
 );
 
 /**
- * T2S-style browser: read any page aloud (double-tap a paragraph), follow
- * "next chapter" links automatically (also with the screen off), uBlock-style
- * ad blocking, reader mode, and full-screen OLED-friendly reading.
+ * Via-style full-screen browser: the page always fills the screen, the
+ * toolbar floats over it and slides away while scrolling, and pages can be
+ * read aloud (double-tap, selection menu or the play button) with automatic
+ * next-chapter, uBlock-style ad blocking and reader mode.
  */
 const BrowserScreen = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
+  const navigation = useNavigation<{ navigate: (name: string) => void }>();
   const webViewRef = useRef<WebView<object>>(null);
   const tabs = useBrowserStore(s => s.tabs);
   const activeId = useBrowserStore(s => s.activeId);
@@ -94,11 +103,16 @@ const BrowserScreen = () => {
     [tabs, activeId],
   );
   const chromeHidden = useBrowserChrome(s => s.hidden);
+  const immersive = prefs.fullscreen;
 
+  // What the WebView loads. Only explicit navigation changes it: recording
+  // visits must never feed back into the source (that reloaded every page).
+  const [sourceUrl, setSourceUrl] = useState(tab.url);
+  const [loadNonce, setLoadNonce] = useState(0);
+  const [readerHtml, setReaderHtml] = useState<string | null>(null);
   const [address, setAddress] = useState(tab.url);
   const [editing, setEditing] = useState(false);
   const [page, setPage] = useState<WebPage | undefined>();
-  const [readerMode, setReaderMode] = useState(false);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [stalled, setStalled] = useState(false);
@@ -108,6 +122,7 @@ const BrowserScreen = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const userAgentRef = useRef<string | undefined>(undefined);
   const pendingPlayRef = useRef(false);
+  const toolbarShift = useRef(new Animated.Value(0)).current;
 
   const playerState = usePlayerStore(s => s.state);
   const source = usePlayerStore(s => s.source);
@@ -118,34 +133,63 @@ const BrowserScreen = () => {
   const playing =
     playingThisPage && (playerState === 'playing' || playerState === 'loading');
 
+  const toolbarVisible = !immersive || !chromeHidden || editing || menuOpen;
   const setChromeHidden = useCallback((hidden: boolean) => {
     useBrowserChrome.setState({ hidden });
   }, []);
 
-  // Ad lists: first use and weekly refresh, in the background.
+  const openUrl = useCallback((url: string) => {
+    setReaderHtml(null);
+    setSourceUrl(url);
+    setLoadNonce(n => n + 1);
+    setAddress(url);
+  }, []);
+
+  // Switching tabs opens that tab's page.
+  useEffect(() => {
+    openUrl(
+      useBrowserStore.getState().tabs.find(t => t.id === activeId)?.url ??
+        tab.url,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
   useEffect(() => {
     void ensureAdblockLists();
   }, []);
 
-  // Full immersion: hide status and navigation bars while the tab is shown.
+  // Full screen while the Browser is shown: no status or navigation bar.
   useEffect(() => {
     if (!focused) return;
-    const hide = prefs.fullscreen && chromeHidden;
-    StatusBar.setHidden(hide);
-    SystemBars.setHidden(hide);
+    StatusBar.setHidden(immersive);
+    SystemBars.setHidden(immersive);
     return () => {
       StatusBar.setHidden(false);
       SystemBars.setHidden(false);
-      useBrowserChrome.setState({ hidden: false });
     };
-  }, [focused, prefs.fullscreen, chromeHidden]);
+  }, [focused, immersive]);
 
-  // Android back: go back in the page history first.
+  // Toolbar slides over the page; the page itself never resizes.
+  useEffect(() => {
+    Animated.timing(toolbarShift, {
+      toValue: toolbarVisible ? 0 : -(TOOLBAR_HEIGHT + insets.top + 8),
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [toolbarVisible, toolbarShift, insets.top]);
+
+  // Bring the toolbar back briefly, then let it slide away again.
+  useEffect(() => {
+    if (!immersive || chromeHidden || editing || menuOpen) return;
+    const timer = setTimeout(() => setChromeHidden(true), CHROME_HIDE_MS);
+    return () => clearTimeout(timer);
+  }, [chromeHidden, editing, menuOpen, immersive, setChromeHidden]);
+
   useEffect(() => {
     if (!focused) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (readerMode) {
-        setReaderMode(false);
+      if (readerHtml) {
+        setReaderHtml(null);
         return true;
       }
       if (canGoBack) {
@@ -155,9 +199,8 @@ const BrowserScreen = () => {
       return false;
     });
     return () => sub.remove();
-  }, [focused, canGoBack, readerMode]);
+  }, [focused, canGoBack, readerHtml]);
 
-  // Stalled-load notice instead of an endless spinner.
   useEffect(() => {
     if (!loading) {
       setStalled(false);
@@ -165,7 +208,7 @@ const BrowserScreen = () => {
     }
     const timer = setTimeout(() => setStalled(true), STALL_MS);
     return () => clearTimeout(timer);
-  }, [loading, tab.url]);
+  }, [loading, loadNonce]);
 
   // Highlight the paragraph being read, and follow it.
   useEffect(() => {
@@ -183,29 +226,18 @@ const BrowserScreen = () => {
   useEffect(
     () =>
       webListenQueue.subscribe(event => {
-        if (event.type === 'page' && focused) {
-          setReaderMode(false);
+        if (event.type === 'page') {
           browserActions.visited(event.page.url, event.page.title);
-          setAddress(event.page.url);
-        } else if (event.type === 'blocked') {
+          if (focused) openUrl(event.page.url);
+        } else {
           setNotice(event.reason);
         }
       }),
-    [focused],
+    [focused, openUrl],
   );
 
-  useEffect(() => {
-    if (!editing) setAddress(tab.url);
-  }, [tab.url, editing]);
-
-  const navigate = useCallback((url: string) => {
-    setReaderMode(false);
-    browserActions.visited(url, url);
-  }, []);
-
   const startListening = useCallback(
-    (index: number, current?: WebPage) => {
-      const target = current ?? page;
+    (index: number, target: WebPage | undefined = page) => {
       if (!target) return;
       if (!target.paragraphs.length) {
         setNotice('No readable text was found on this page.');
@@ -228,18 +260,11 @@ const BrowserScreen = () => {
         case 'page': {
           userAgentRef.current = message.ua;
           usePlayerStore.setState({ userAgent: message.ua });
-          const extracted = extractWebPage(
-            message.html,
-            message.url,
-            getCleanerOptions(),
+          if (readerHtml) return; // reader mode shows a page we made
+          setPage(
+            extractWebPage(message.html, message.url, getCleanerOptions()),
           );
-          // Reader mode keeps the original page's title/links.
-          setPage(prev =>
-            readerMode && prev
-              ? { ...prev, paragraphs: extracted.paragraphs }
-              : extracted,
-          );
-          if (!readerMode) browserActions.visited(message.url, message.title);
+          browserActions.visited(message.url, message.title);
           const css = await cosmeticCssFor(hostOf(message.url));
           if (css) {
             webViewRef.current?.injectJavaScript(
@@ -263,13 +288,39 @@ const BrowserScreen = () => {
           break;
         }
         case 'scroll': {
-          if (!prefs.fullscreen) return;
+          if (!immersive) return;
           setChromeHidden(message.dir === 'down' && !message.atTop);
           break;
         }
       }
     },
-    [page, prefs.fullscreen, readerMode, setChromeHidden, startListening],
+    [immersive, page, readerHtml, setChromeHidden, startListening],
+  );
+
+  const onSelectionMenu = useCallback(
+    (event: { nativeEvent: { key: string; selectedText: string } }) => {
+      const { key, selectedText } = event.nativeEvent;
+      const text = selectedText?.trim();
+      if (!text) return;
+      if (key === 'readSelection' || !page) {
+        void playWebPage(
+          {
+            url: `${page?.url ?? sourceUrl}#selection`,
+            title: 'Selection',
+            paragraphs: text
+              .split(/\n+/)
+              .map(t => t.trim())
+              .filter(Boolean),
+          },
+          0,
+          userAgentRef.current,
+        );
+        return;
+      }
+      const index = findParagraphIndex(page.paragraphs, text);
+      startListening(index >= 0 ? index : 0);
+    },
+    [page, sourceUrl, startListening],
   );
 
   const onListenPress = () => {
@@ -283,88 +334,140 @@ const BrowserScreen = () => {
     );
   };
 
-  // Auto-hide the floating controls again after a tap brings them back.
-  useEffect(() => {
-    if (!prefs.fullscreen || chromeHidden || editing || menuOpen) return;
-    const timer = setTimeout(() => setChromeHidden(true), CHROME_HIDE_MS * 2);
-    return () => clearTimeout(timer);
-  }, [chromeHidden, editing, menuOpen, prefs.fullscreen, setChromeHidden]);
-
-  const source_ = useMemo<WebViewSource>(
+  const webSource = useMemo<WebViewSource>(
     () =>
-      readerMode && page
-        ? { html: readerModeHtml(page, prefs.darkPages), baseUrl: page.url }
-        : { uri: tab.url },
-    [readerMode, page, prefs.darkPages, tab.url],
+      readerHtml
+        ? { html: readerHtml, baseUrl: page?.url ?? sourceUrl }
+        : { uri: sourceUrl },
+    // loadNonce forces a fresh load when the same URL is opened again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [readerHtml, sourceUrl, loadNonce],
   );
 
-  const barsVisible = !prefs.fullscreen || !chromeHidden;
+  const toolbar = (
+    <View
+      style={[
+        styles.toolbar,
+        {
+          backgroundColor: theme.surface2 ?? theme.surface,
+          paddingTop: (immersive ? 0 : insets.top) + 6,
+        },
+      ]}
+    >
+      <IconButton
+        icon="home-outline"
+        label="Library"
+        onPress={() => navigation.navigate('Library')}
+        color={theme.onSurface}
+      />
+      <IconButton
+        icon="arrow-left"
+        label="Back"
+        disabled={!canGoBack && !readerHtml}
+        onPress={() =>
+          readerHtml ? setReaderHtml(null) : webViewRef.current?.goBack()
+        }
+        color={theme.onSurface}
+      />
+      <TextInput
+        value={address}
+        onChangeText={setAddress}
+        onFocus={() => setEditing(true)}
+        onBlur={() => setEditing(false)}
+        onSubmitEditing={() => {
+          setEditing(false);
+          openUrl(toUrl(address));
+        }}
+        selectTextOnFocus
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="url"
+        returnKeyType="go"
+        placeholder="Search or type a web address"
+        placeholderTextColor={theme.onSurfaceVariant}
+        style={[
+          styles.address,
+          { color: theme.onSurface, backgroundColor: theme.surfaceVariant },
+        ]}
+      />
+      <Pressable
+        onPress={() => setMenuOpen(true)}
+        style={[styles.tabCount, { borderColor: theme.onSurface }]}
+        accessibilityLabel="Tabs and menu"
+      >
+        <Text style={{ color: theme.onSurface }}>{tabs.length}</Text>
+      </Pressable>
+      <IconButton
+        icon="dots-vertical"
+        label="Menu"
+        onPress={() => setMenuOpen(true)}
+        color={theme.onSurface}
+      />
+    </View>
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {barsVisible ? (
-        <View
+    <View style={[styles.container, { backgroundColor: '#000' }]}>
+      {!immersive ? toolbar : null}
+
+      <WebView
+        key={tab.id}
+        ref={webViewRef}
+        source={webSource}
+        style={styles.webview}
+        containerStyle={styles.webview}
+        injectedJavaScript={PAGE_SCRIPT}
+        onMessage={onMessage}
+        menuItems={SELECTION_MENU}
+        onCustomMenuSelection={onSelectionMenu}
+        forceDarkOn={prefs.darkPages}
+        setSupportMultipleWindows={false}
+        javaScriptCanOpenWindowsAutomatically={false}
+        onLoadStart={() => {
+          setLoading(true);
+          setProgress(0);
+        }}
+        onLoadProgress={(e: WebViewProgressEvent) =>
+          setProgress(e.nativeEvent.progress)
+        }
+        onLoadEnd={() => setLoading(false)}
+        onNavigationStateChange={(nav: WebViewNavigation) => {
+          setCanGoBack(nav.canGoBack);
+          setCanGoForward(nav.canGoForward);
+          if (!readerHtml && nav.url && !editing) setAddress(nav.url);
+        }}
+        onShouldStartLoadWithRequest={(request: ShouldStartLoadRequest) => {
+          // Links tapped inside Reader mode open the real page.
+          if (readerHtml && request.navigationType === 'click') {
+            openUrl(request.url);
+            return false;
+          }
+          return true;
+        }}
+      />
+
+      {immersive ? (
+        <Animated.View
           style={[
-            styles.topBar,
+            styles.overlay,
             {
-              backgroundColor: theme.surface2 ?? theme.surface,
-              paddingTop: insets.top + 6,
+              paddingTop: insets.top,
+              transform: [{ translateY: toolbarShift }],
             },
           ]}
+          pointerEvents={toolbarVisible ? 'box-none' : 'none'}
         >
-          <IconButton
-            icon="arrow-left"
-            label="Back"
-            disabled={!canGoBack}
-            onPress={() => webViewRef.current?.goBack()}
-            color={theme.onSurface}
-          />
-          <TextInput
-            value={address}
-            onChangeText={setAddress}
-            onFocus={() => setEditing(true)}
-            onBlur={() => setEditing(false)}
-            onSubmitEditing={() => {
-              setEditing(false);
-              navigate(toUrl(address));
-            }}
-            selectTextOnFocus
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            returnKeyType="go"
-            placeholder="Search or type a web address"
-            placeholderTextColor={theme.onSurfaceVariant}
-            style={[
-              styles.address,
-              {
-                color: theme.onSurface,
-                backgroundColor: theme.surfaceVariant,
-              },
-            ]}
-          />
-          <Pressable
-            onPress={() => setMenuOpen(true)}
-            style={[styles.tabCount, { borderColor: theme.onSurface }]}
-            accessibilityLabel="Tabs and menu"
-          >
-            <Text style={{ color: theme.onSurface }}>{tabs.length}</Text>
-          </Pressable>
-          <IconButton
-            icon="dots-vertical"
-            label="Menu"
-            onPress={() => setMenuOpen(true)}
-            color={theme.onSurface}
-          />
-        </View>
+          {toolbar}
+        </Animated.View>
       ) : null}
 
       {loading ? (
         <View
           style={[
             styles.progressTrack,
-            { backgroundColor: theme.surfaceVariant },
+            { top: immersive ? 0 : undefined, backgroundColor: 'transparent' },
           ]}
+          pointerEvents="none"
         >
           <View
             style={[
@@ -378,118 +481,87 @@ const BrowserScreen = () => {
         </View>
       ) : null}
 
-      {stalled ? (
-        <View
-          style={[styles.banner, { backgroundColor: theme.errorContainer }]}
-        >
-          <Text style={[styles.bannerText, { color: theme.onErrorContainer }]}>
-            Still loading…
-          </Text>
-          <Pressable onPress={() => webViewRef.current?.reload()}>
-            <Text style={[styles.bannerAction, { color: theme.primary }]}>
-              Retry
-            </Text>
-          </Pressable>
-          {page?.paragraphs.length ? (
-            <Pressable onPress={() => setReaderMode(true)}>
-              <Text style={[styles.bannerAction, { color: theme.primary }]}>
-                Reader mode
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
-
-      {notice ? (
+      {stalled || notice ? (
         <Pressable
           onPress={() => setNotice(null)}
-          style={[styles.banner, { backgroundColor: theme.surfaceVariant }]}
-        >
-          <Text style={[styles.bannerText, { color: theme.onSurfaceVariant }]}>
-            {notice}
-          </Text>
-          <Icon name="close" size={18} color={theme.onSurfaceVariant} />
-        </Pressable>
-      ) : null}
-
-      <WebView
-        key={tab.id}
-        ref={webViewRef}
-        source={source_}
-        style={styles.webview}
-        injectedJavaScript={PAGE_SCRIPT}
-        onMessage={onMessage}
-        forceDarkOn={prefs.darkPages}
-        setSupportMultipleWindows={false}
-        javaScriptCanOpenWindowsAutomatically={false}
-        allowsBackForwardNavigationGestures
-        onLoadStart={() => {
-          setLoading(true);
-          setProgress(0);
-        }}
-        onLoadProgress={(e: WebViewProgressEvent) =>
-          setProgress(e.nativeEvent.progress)
-        }
-        onLoadEnd={() => setLoading(false)}
-        onNavigationStateChange={(nav: WebViewNavigation) => {
-          setCanGoBack(nav.canGoBack);
-          setCanGoForward(nav.canGoForward);
-          if (!readerMode && nav.url && !editing) setAddress(nav.url);
-        }}
-        onShouldStartLoadWithRequest={(request: ShouldStartLoadRequest) => {
-          // Links tapped inside Reader mode open the real page.
-          if (readerMode && request.navigationType === 'click') {
-            navigate(request.url);
-            return false;
-          }
-          return true;
-        }}
-      />
-
-      {barsVisible || playing ? (
-        <View
           style={[
-            styles.listenPill,
+            styles.banner,
             {
-              backgroundColor: theme.surfaceVariant,
-              bottom: 16 + (barsVisible ? 0 : insets.bottom),
+              backgroundColor: stalled
+                ? theme.errorContainer
+                : theme.surfaceVariant,
+              top: (toolbarVisible ? TOOLBAR_HEIGHT : 0) + insets.top + 8,
             },
           ]}
         >
-          {playingThisPage ? (
-            <IconButton
-              icon="rewind"
-              label="Rewind"
-              onPress={() => void runPlayerCommand('previous')}
-              color={theme.onSurface}
-            />
-          ) : null}
-          <Pressable
-            onPress={onListenPress}
-            style={[styles.listenButton, { backgroundColor: theme.primary }]}
-            accessibilityLabel={playing ? 'Pause' : 'Read this page aloud'}
-          >
-            <Icon
-              name={playing ? 'pause' : 'play'}
-              size={30}
-              color={theme.onPrimary}
-            />
-          </Pressable>
-          {playingThisPage ? (
-            <IconButton
-              icon="fast-forward"
-              label="Forward"
-              onPress={() => void runPlayerCommand('next')}
-              color={theme.onSurface}
-            />
-          ) : null}
-        </View>
+          <Text style={[styles.bannerText, { color: theme.onSurfaceVariant }]}>
+            {stalled ? 'Still loading…' : notice}
+          </Text>
+          {stalled ? (
+            <>
+              <Pressable onPress={() => webViewRef.current?.reload()}>
+                <Text style={[styles.bannerAction, { color: theme.primary }]}>
+                  Retry
+                </Text>
+              </Pressable>
+              {page?.paragraphs.length ? (
+                <Pressable
+                  onPress={() =>
+                    setReaderHtml(readerModeHtml(page, prefs.darkPages))
+                  }
+                >
+                  <Text style={[styles.bannerAction, { color: theme.primary }]}>
+                    Reader mode
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <Icon name="close" size={18} color={theme.onSurfaceVariant} />
+          )}
+        </Pressable>
       ) : null}
 
-      {!barsVisible ? (
-        // Invisible strip: tapping the top edge brings the bars back.
+      <View
+        style={[
+          styles.listenPill,
+          { backgroundColor: theme.surfaceVariant, bottom: 16 + insets.bottom },
+          !toolbarVisible && !playing && styles.pillFaded,
+        ]}
+      >
+        {playingThisPage ? (
+          <IconButton
+            icon="rewind"
+            label="Rewind"
+            onPress={() => void runPlayerCommand('previous')}
+            color={theme.onSurface}
+          />
+        ) : null}
         <Pressable
-          style={[styles.revealStrip, { height: insets.top + 24 }]}
+          onPress={onListenPress}
+          style={[styles.listenButton, { backgroundColor: theme.primary }]}
+          accessibilityLabel={playing ? 'Pause' : 'Read this page aloud'}
+        >
+          <Icon
+            name={playing ? 'pause' : 'play'}
+            size={30}
+            color={theme.onPrimary}
+          />
+        </Pressable>
+        {playingThisPage ? (
+          <IconButton
+            icon="fast-forward"
+            label="Forward"
+            onPress={() => void runPlayerCommand('next')}
+            color={theme.onSurface}
+          />
+        ) : null}
+      </View>
+
+      {immersive && !toolbarVisible ? (
+        // Invisible strip: tapping the top edge brings the toolbar back.
+        <Pressable
+          style={[styles.revealStrip, { height: insets.top + 28 }]}
           onPress={() => setChromeHidden(false)}
         />
       ) : null}
@@ -498,15 +570,19 @@ const BrowserScreen = () => {
         visible={menuOpen}
         onDismiss={() => setMenuOpen(false)}
         page={page}
-        currentUrl={tab.url}
-        readerMode={readerMode}
-        setReaderMode={setReaderMode}
+        currentUrl={sourceUrl}
+        readerMode={!!readerHtml}
+        setReaderMode={on =>
+          setReaderHtml(
+            on && page ? readerModeHtml(page, prefs.darkPages) : null,
+          )
+        }
         canGoForward={canGoForward}
         onForward={() => webViewRef.current?.goForward()}
         onReload={() => webViewRef.current?.reload()}
         onOpen={url => {
           setMenuOpen(false);
-          navigate(url);
+          openUrl(url);
         }}
         onNotice={setNotice}
       />
@@ -518,12 +594,14 @@ export default BrowserScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: {
+  toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingBottom: 6,
+    minHeight: TOOLBAR_HEIGHT,
   },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, elevation: 4 },
   address: {
     flex: 1,
     height: 40,
@@ -543,17 +621,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginHorizontal: 6,
   },
-  progressTrack: { height: 3 },
+  progressTrack: { position: 'absolute', left: 0, right: 0, height: 3 },
   progressFill: { height: 3 },
   banner: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
+    borderRadius: 12,
+    elevation: 5,
   },
   bannerText: { flex: 1, fontSize: 14 },
   bannerAction: { fontWeight: '600', marginStart: 16 },
-  webview: { flex: 1 },
+  webview: { flex: 1, backgroundColor: '#000' },
   listenPill: {
     position: 'absolute',
     alignSelf: 'center',
@@ -564,6 +647,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     elevation: 6,
   },
+  pillFaded: { opacity: 0.35 },
   listenButton: {
     width: 52,
     height: 52,

@@ -19,18 +19,15 @@ import { MaterialDesignIconName } from '@type/icon';
 import { BottomTabBar } from '@components';
 import MiniPlayer from '@screens/player/MiniPlayer';
 import BrowserScreen from '@screens/browser/BrowserScreen';
-import {
-  useBrowserChrome,
-  useBrowserStore,
-} from '@services/browser/browserStore';
+import { useBrowserStore } from '@services/browser/browserStore';
 
 const Tab = createBottomTabNavigator<BottomNavigatorParamList>();
 
 const BottomNavigator = () => {
   const theme = useTheme();
-  const browserFullscreen = useBrowserStore(s => s.prefs.fullscreen);
-  const browserChromeHidden = useBrowserChrome(s => s.hidden);
-  const browserImmersive = browserFullscreen && browserChromeHidden;
+  // Full-screen browsing hides the tab bar for as long as the Browser is shown
+  // (toggling it with the toolbar would resize the page and make it flicker).
+  const browserImmersive = useBrowserStore(s => s.prefs.fullscreen);
 
   const {
     showHistoryTab = true,

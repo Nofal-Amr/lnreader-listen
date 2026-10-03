@@ -111,8 +111,21 @@ export const paragraphKey = (text: string) =>
 export const findParagraphIndex = (paragraphs: string[], text: string) => {
   const k = paragraphKey(text);
   if (!k) return -1;
-  return paragraphs.findIndex(p => {
+  const exact = paragraphs.findIndex(p => {
     const pk = paragraphKey(p);
     return pk === k || pk.startsWith(k) || k.startsWith(pk);
   });
+  if (exact >= 0) return exact;
+  // A selection from the middle of a paragraph: match on its own letters.
+  const inner = text
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 40);
+  if (inner.length < 8) return -1;
+  return paragraphs.findIndex(p =>
+    p
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .includes(inner),
+  );
 };
