@@ -7,6 +7,7 @@ import { useTheme, useChapterGeneralSettings } from '@hooks/persisted';
 import { getString } from '@i18n/translations';
 import { List, Button } from '@components/index';
 import SettingSwitch from '../../components/SettingSwitch';
+import SwipeDistanceSlider from '@screens/reader/components/ReaderBottomSheet/SwipeDistanceSlider';
 
 const NavigationTab: React.FC = () => {
   const theme = useTheme();
@@ -15,6 +16,7 @@ const NavigationTab: React.FC = () => {
     volumeButtonsOffset = null,
     verticalSeekbar = true,
     swipeGestures = false,
+    swipeDistance,
     pageReader = false,
     pageReaderInvertVolumeButtons = false,
     pageReaderDisableAnimation = false,
@@ -97,6 +99,15 @@ const NavigationTab: React.FC = () => {
           }
           theme={theme}
         />
+        {swipeGestures ? (
+          <SwipeDistanceSlider
+            value={swipeDistance}
+            onChange={value =>
+              setChapterGeneralSettings({ swipeDistance: value })
+            }
+            theme={theme}
+          />
+        ) : null}
         <SettingSwitch
           label={getString('readerScreen.bottomSheet.tapToScroll')}
           description={getString(

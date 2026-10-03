@@ -54,6 +54,7 @@ export const initialChapterGeneralSettings = {
   fullScreenMode: true,
   pageReader: false,
   swipeGestures: false,
+  swipeDistance: 0.4,
   showScrollPercentage: true,
   useVolumeButtons: false,
   volumeButtonsOffset: null,

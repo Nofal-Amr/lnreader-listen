@@ -18,6 +18,7 @@ export interface Font {
 
 export const readerFonts: Font[] = [
   { fontFamily: '', name: 'Original' },
+  { fontFamily: 'roboto', name: 'Roboto' },
   { fontFamily: 'lora', name: 'Lora' },
   { fontFamily: 'nunito', name: 'Nunito' },
   { fontFamily: 'noto-sans', name: 'Noto Sans' },

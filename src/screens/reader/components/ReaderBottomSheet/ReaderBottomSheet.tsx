@@ -29,6 +29,7 @@ import ReaderTextAlignSelector from './ReaderTextAlignSelector';
 import ReaderValueChange from './ReaderValueChange';
 import ReaderFontPicker from './ReaderFontPicker';
 import TTSTab from './TTSTab';
+import SwipeDistanceSlider from './SwipeDistanceSlider';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { StringMap } from '@i18n/types';
 
@@ -202,6 +203,22 @@ const GeneralTab: React.FC = React.memo(() => {
               {renderPreference(item)}
               {settings.pageReader &&
                 pagedModePreferences.map(renderPreference)}
+            </React.Fragment>
+          );
+        }
+        if (item.key === 'swipeGestures') {
+          return (
+            <React.Fragment key={item.key}>
+              {renderPreference(item)}
+              {settings.swipeGestures ? (
+                <SwipeDistanceSlider
+                  value={settings.swipeDistance}
+                  onChange={swipeDistance =>
+                    setChapterGeneralSettings({ swipeDistance })
+                  }
+                  theme={theme}
+                />
+              ) : null}
             </React.Fragment>
           );
         }

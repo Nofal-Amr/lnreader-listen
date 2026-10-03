@@ -191,6 +191,8 @@ export interface ChapterGeneralSettings {
   fullScreenMode: boolean;
   pageReader: boolean;
   swipeGestures: boolean;
+  /** Share of the screen width a swipe must travel to change chapter. */
+  swipeDistance?: number;
   showScrollPercentage: boolean;
   useVolumeButtons: boolean;
   volumeButtonsOffset: number | null;
@@ -332,6 +334,7 @@ export const initialChapterGeneralSettings: ChapterGeneralSettings = {
   fullScreenMode: true,
   pageReader: false,
   swipeGestures: false,
+  swipeDistance: 0.4,
   showScrollPercentage: true,
   useVolumeButtons: false,
   volumeButtonsOffset: null,
