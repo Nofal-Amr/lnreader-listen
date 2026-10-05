@@ -322,9 +322,12 @@ export class Detector {
     this.pairedDecoRe =
       (options.sensitivity ?? 'normal') === 'low'
         ? null
-        : /([➤►▶▸➜➔➣➢→⇒◆◇♦❖■□▪●○•◉★☆✦✧✪⋆✿❀♠♣♥♡⚜※])\s*[^\s]{2,25}\s*\1/g;
+        : new RegExp(
+            '([\\u2190-\\u21FF\\u25A0-\\u2668\\u266D-\\u27BF\\u2B00-\\u2BFF\\u203B])\\s*[^\\s]{2,25}\\s*\\1',
+            'g',
+          );
     this.promoParenRe =
-      /[([]\s*(?:only\s+on\b|read\s+(?:the\s+)?(?:full|more|latest)\b|source\s*:|visit\b|available\s+(?:on|at)\b)[^)\]\n]{0,60}[)\]]/gi;
+      /[([]\s*(?:only\s+on\b|read\s+(?:the\s+)?(?:full|more|latest)\b|source\s*:|visit\b|available\s+(?:on|at)\b|(?:continue|keep)\s+reading\b)[^)\]\n]{0,60}[)\]]/gi;
 
     for (const [cat, pats] of Object.entries(SENTENCE_PATTERNS)) {
       for (const pat of pats) {

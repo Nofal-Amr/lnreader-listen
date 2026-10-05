@@ -354,12 +354,12 @@ export const initialChapterGeneralSettings: ChapterGeneralSettings = {
 };
 
 export const initialChapterReaderSettings: ChapterReaderSettings = {
-  theme: '#292832',
-  textColor: '#CCCCCC',
-  textSize: 16,
-  textAlign: 'left',
+  theme: '#c8d6e1',
+  textColor: '#1a1a1a',
+  textSize: 24,
+  textAlign: 'justify',
   padding: 16,
-  fontFamily: '',
+  fontFamily: 'roboto',
   lineHeight: 1.5,
   customCSS: '',
   customJS: '',

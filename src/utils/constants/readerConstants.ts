@@ -1,6 +1,9 @@
 import { ReaderTheme } from '@hooks/persisted/useSettings';
 
 export const presetReaderThemes: ReaderTheme[] = [
+  // Wuxiaworld blue, and its night version (same blue as the text).
+  { backgroundColor: '#c8d6e1', textColor: '#1a1a1a' },
+  { backgroundColor: '#16222d', textColor: '#c8d6e1' },
   { backgroundColor: '#f5f5fa', textColor: '#111111' },
   { backgroundColor: '#F7DFC6', textColor: '#593100' },
   { backgroundColor: '#dce5e2', textColor: '#000000' },

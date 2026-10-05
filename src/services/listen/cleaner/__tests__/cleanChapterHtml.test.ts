@@ -90,6 +90,21 @@ describe('cleanChapterHtml', () => {
       });
     }
 
+    it('removes "◈ Name ◈ (Continue reading)" mid-sentence', () => {
+      const html =
+        '<p>All he would gain was ◈ Novelighт ◈ (Continue reading) temporary delay of the inevitable.</p>';
+      expect(extractTtsParagraphs(cleanChapterHtml(html, normal))).toEqual([
+        'All he would gain was temporary delay of the inevitable.',
+      ]);
+    });
+
+    it('keeps song lines wrapped in music notes', () => {
+      const html = '<p>She hummed ♪ Lalala ♪ softly.</p>';
+      expect(extractTtsParagraphs(cleanChapterHtml(html, normal))).toEqual([
+        'She hummed ♪ Lalala ♪ softly.',
+      ]);
+    });
+
     it('keeps ordinary symbols in story text', () => {
       const html =
         '<p>The score was 3 ★ to 2, and ➤ marked the path.</p><p>*Thud* He fell. *sigh*</p>';
