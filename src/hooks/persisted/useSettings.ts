@@ -244,6 +244,8 @@ export interface ChapterReaderSettings {
     shakeToExtend?: boolean;
     favourites?: TtsFavourite[];
     azureKey?: string;
+    /** Failsafe: playback settings ignore taps until unlocked. */
+    playbackLocked?: boolean;
     azureRegion?: string;
     cleaner?: Partial<CleanerOptions>;
     speech?: Partial<SpeechRuleSettings>;

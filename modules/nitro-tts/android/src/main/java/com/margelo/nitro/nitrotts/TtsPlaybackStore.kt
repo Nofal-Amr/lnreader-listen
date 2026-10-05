@@ -58,14 +58,26 @@ internal object TtsPlaybackStore {
     private var currentUtteranceId: String? = null
 
     private val sleepTimerListeners = TtsListenerRegistry<TtsSleepTimerState>()
+    private var lastSleepLabel: String? = null
     private val sleepTimer = SleepTimerController(
         handler = ownerHandler,
-        onExpire = { pause() },
-        onChange = { sleepTimerListeners.emit(it) },
+        onExpire = { pauseFor("Sleep timer ended.") },
+        onChange = { timerState ->
+            sleepTimerListeners.emit(timerState)
+            // Refresh the notification only when its minute label changes.
+            val label = sleepLabel()
+            if (label != lastSleepLabel) {
+                lastSleepLabel = label
+                snapshotListeners.emit(snapshot())
+            }
+        },
     )
     private val autoPause = Runnable {
-        if (state == TtsPlaybackState.PLAYING) pause()
+        if (state == TtsPlaybackState.PLAYING) {
+            pauseFor("Paused after ${settings.autoPauseMinutes?.toInt() ?: 0} minutes without interaction.")
+        }
     }
+    private val keepAlive = SilentKeepAlive()
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
@@ -336,6 +348,9 @@ internal object TtsPlaybackStore {
                 // Another app now owns audio focus outright (e.g. a call was answered).
                 hasAudioFocus = false
                 resumeOnFocusGain = false
+                if (state == TtsPlaybackState.PLAYING) {
+                    errorListeners.emit("Paused: another app started playing audio.")
+                }
                 pauseEngine()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
@@ -423,6 +438,44 @@ internal object TtsPlaybackStore {
 
     fun cancelSleepTimer() {
         sleepTimer.cancel()
+    }
+
+    /** Pauses and tells the UI why (shown in the player). */
+    fun pauseFor(reason: String) {
+        val wasPlaying = state == TtsPlaybackState.PLAYING || waitingForChapter
+        pause()
+        if (wasPlaying) errorListeners.emit(reason)
+    }
+
+    /** Short sleep-timer text for the notification, or null when off. */
+    fun sleepLabel(): String? {
+        val s = sleepTimer.state()
+        if (!s.active) return null
+        return when (s.mode) {
+            TtsSleepTimerMode.MINUTES -> "Sleep in ${Math.ceil(s.remainingMs / 60_000.0).toInt()} min"
+            TtsSleepTimerMode.ENDOFCHAPTER -> "Sleep at end of chapter"
+            TtsSleepTimerMode.CHAPTERS -> "Sleep in ${s.remainingChapters.toInt()} chapters"
+        }
+    }
+
+    /** Notification button: off → 15 → 30 → 60 min → end of chapter → off. */
+    fun cycleSleepTimer() {
+        val context = applicationContext ?: return
+        val s = sleepTimer.state()
+        val minutesLeft = Math.ceil(s.remainingMs / 60_000.0)
+        val next: TtsSleepTimer? = when {
+            !s.active -> TtsSleepTimer(TtsSleepTimerMode.MINUTES, 15.0, true)
+            s.mode == TtsSleepTimerMode.MINUTES && minutesLeft <= 15 ->
+                TtsSleepTimer(TtsSleepTimerMode.MINUTES, 30.0, true)
+            s.mode == TtsSleepTimerMode.MINUTES && minutesLeft <= 30 ->
+                TtsSleepTimer(TtsSleepTimerMode.MINUTES, 60.0, true)
+            s.mode == TtsSleepTimerMode.MINUTES ->
+                TtsSleepTimer(TtsSleepTimerMode.ENDOFCHAPTER, 1.0, true)
+            else -> null
+        }
+        if (next == null) sleepTimer.cancel() else sleepTimer.start(context, next)
+        lastSleepLabel = sleepLabel()
+        snapshotListeners.emit(snapshot())
     }
 
     fun addSleepTimerListener(listener: (TtsSleepTimerState) -> Unit): () -> Unit {
@@ -737,6 +790,13 @@ internal object TtsPlaybackStore {
     }
 
     private fun emitState() {
+        // Keep this app the "active player" while reading so media buttons
+        // (headphones, watch, Bluetooth) come here and not to a music app.
+        if (state == TtsPlaybackState.PLAYING || state == TtsPlaybackState.LOADING) {
+            keepAlive.start()
+        } else {
+            keepAlive.stop()
+        }
         stateListeners.emit(state)
         snapshotListeners.emit(snapshot())
     }

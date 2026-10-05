@@ -338,6 +338,31 @@ const TTSController = () => {
     controllerElement.style.bottom = 'auto';
   };
 
+  // Remember where the reader put the bubble (default: top left).
+  const POSITION_KEY = 'lnl.ttsControllerPosition';
+  const saveControllerPosition = () => {
+    try {
+      const bounds = controllerElement.getBoundingClientRect();
+      localStorage.setItem(
+        POSITION_KEY,
+        JSON.stringify({ left: bounds.left, top: bounds.top }),
+      );
+    } catch (e) {}
+  };
+  const restoreControllerPosition = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null');
+      controllerElement ??= document.getElementById('TTS-Controller');
+      if (!saved || !controllerElement) return;
+      controllerElement.style.left = saved.left + 'px';
+      controllerElement.style.top = saved.top + 'px';
+      controllerElement.style.right = 'auto';
+      controllerElement.style.bottom = 'auto';
+      clampControllerToViewport();
+    } catch (e) {}
+  };
+  setTimeout(restoreControllerPosition, 0);
+
   const clampControllerToViewport = () => {
     const bounds = controllerElement.getBoundingClientRect();
     const maxLeft = Math.max(8, window.innerWidth - bounds.width - 8);
@@ -407,6 +432,7 @@ const TTSController = () => {
 
   const endDrag = e => {
     stopEvent(e);
+    saveControllerPosition();
     controllerElement.classList.remove('active');
     controllerElement.style.transition = '';
 
@@ -465,6 +491,7 @@ const TTSController = () => {
     const shouldExpand = !moved;
     lastBubbleTouchEnd = Date.now();
     finishBubbleDrag();
+    if (!shouldExpand) saveControllerPosition();
     if (shouldExpand) {
       setCollapsed(false);
     }

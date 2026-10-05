@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Chip, TextInput } from 'react-native-paper';
 
-import { List, Slider } from '@components';
+import { Dialog, List, Slider } from '@components';
 import { Tts, type TtsSkipUnit } from '@modules/nitro-tts';
 import type {
   ChapterReaderSettings,
@@ -21,7 +21,7 @@ type ReaderTts = NonNullable<ChapterReaderSettings['tts']>;
 
 type Props = {
   /** Which sub-tab to render. */
-  part: 'voice' | 'playback';
+  part: 'voice' | 'playback' | 'sleep';
   tts: ChapterReaderSettings['tts'];
   setTts: (tts: ReaderTts) => void;
   theme: ThemeColors;
@@ -116,6 +116,7 @@ const ListenSettingsSection: React.FC<Props> = ({
   const current = useMemo<ReaderTts>(() => tts ?? {}, [tts]);
   const sleep = useSleepTimer();
   const [previewing, setPreviewing] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const update = useCallback(
     (patch: Partial<ReaderTts>) => setTts({ ...current, ...patch }),
     [current, setTts],
@@ -232,52 +233,123 @@ const ListenSettingsSection: React.FC<Props> = ({
     </>
   );
 
+  const locked = current.playbackLocked !== false;
+
   const playbackPart = (
     <>
-      <List.SubHeader theme={theme}>Pauses</List.SubHeader>
-      <PauseSlider
-        label="After a comma"
-        value={current.pauseCommaMs ?? TTS_DEFAULTS.pauseCommaMs}
-        onChange={v => update({ pauseCommaMs: v })}
+      <ReaderSheetPreferenceItem
+        label="Lock playback settings"
+        description="Prevents accidental changes. Turn off to edit."
+        value={locked}
+        onPress={() => update({ playbackLocked: !locked })}
         theme={theme}
       />
-      <PauseSlider
-        label="After a sentence"
-        value={current.pauseSentenceMs ?? TTS_DEFAULTS.pauseSentenceMs}
-        onChange={v => update({ pauseSentenceMs: v })}
-        theme={theme}
-      />
-      <PauseSlider
-        label="Between paragraphs"
-        value={current.pauseParagraphMs ?? TTS_DEFAULTS.pauseParagraphMs}
-        onChange={v => update({ pauseParagraphMs: v })}
-        theme={theme}
-      />
-      <PauseSlider
-        label="Between chapters"
-        value={current.pauseChapterMs ?? TTS_DEFAULTS.pauseChapterMs}
-        onChange={v => update({ pauseChapterMs: v })}
-        theme={theme}
-      />
+      <View
+        pointerEvents={locked ? 'none' : 'auto'}
+        style={locked ? styles.locked : undefined}
+      >
+        <List.SubHeader theme={theme}>Pauses</List.SubHeader>
+        <PauseSlider
+          label="After a comma"
+          value={current.pauseCommaMs ?? TTS_DEFAULTS.pauseCommaMs}
+          onChange={v => update({ pauseCommaMs: v })}
+          theme={theme}
+        />
+        <PauseSlider
+          label="After a sentence"
+          value={current.pauseSentenceMs ?? TTS_DEFAULTS.pauseSentenceMs}
+          onChange={v => update({ pauseSentenceMs: v })}
+          theme={theme}
+        />
+        <PauseSlider
+          label="Between paragraphs"
+          value={current.pauseParagraphMs ?? TTS_DEFAULTS.pauseParagraphMs}
+          onChange={v => update({ pauseParagraphMs: v })}
+          theme={theme}
+        />
+        <PauseSlider
+          label="Between chapters"
+          value={current.pauseChapterMs ?? TTS_DEFAULTS.pauseChapterMs}
+          onChange={v => update({ pauseChapterMs: v })}
+          theme={theme}
+        />
 
-      <List.SubHeader theme={theme}>Skip range</List.SubHeader>
-      <ChipRow
-        label="Rewind ⏪"
-        options={SKIP_UNITS}
-        selected={current.rewindUnit ?? TTS_DEFAULTS.rewindUnit}
-        format={unitLabel}
-        onSelect={rewindUnit => update({ rewindUnit })}
-        theme={theme}
-      />
-      <ChipRow
-        label="Forward ⏩"
-        options={SKIP_UNITS}
-        selected={current.forwardUnit ?? TTS_DEFAULTS.forwardUnit}
-        format={unitLabel}
-        onSelect={forwardUnit => update({ forwardUnit })}
-        theme={theme}
-      />
+        <List.SubHeader theme={theme}>Skip range</List.SubHeader>
+        <ChipRow
+          label="Rewind ⏪"
+          options={SKIP_UNITS}
+          selected={current.rewindUnit ?? TTS_DEFAULTS.rewindUnit}
+          format={unitLabel}
+          onSelect={rewindUnit => update({ rewindUnit })}
+          theme={theme}
+        />
+        <ChipRow
+          label="Forward ⏩"
+          options={SKIP_UNITS}
+          selected={current.forwardUnit ?? TTS_DEFAULTS.forwardUnit}
+          format={unitLabel}
+          onSelect={forwardUnit => update({ forwardUnit })}
+          theme={theme}
+        />
 
+        <ReaderSheetPreferenceItem
+          label="Play alongside other media"
+          description="Keeps reading when other apps play sound. Calls will no longer pause it."
+          value={current.mixWithOthers === true}
+          onPress={() =>
+            update({ mixWithOthers: !(current.mixWithOthers === true) })
+          }
+          theme={theme}
+        />
+      </View>
+      <List.Item
+        title="Reset playback settings to defaults"
+        description="Pauses, skip range and audio sharing."
+        right="restore"
+        onPress={() => setConfirmReset(true)}
+        theme={theme}
+      />
+      <Dialog.Root
+        visible={confirmReset}
+        onDismiss={() => setConfirmReset(false)}
+      >
+        <Dialog.Title>Reset playback settings?</Dialog.Title>
+        <Dialog.Content>
+          <Text style={{ color: theme.onSurfaceVariant }}>
+            Pauses, rewind and forward size and ‘play alongside other media’ go
+            back to their defaults. Voice, speed and pitch are not changed.
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Dialog.Action onPress={() => setConfirmReset(false)}>
+            Cancel
+          </Dialog.Action>
+          <Dialog.Action
+            tone="danger"
+            onPress={() => {
+              setConfirmReset(false);
+              update({
+                pauseCommaMs: undefined,
+                pauseSentenceMs: undefined,
+                pauseParagraphMs: undefined,
+                pauseChapterMs: undefined,
+                rewindUnit: undefined,
+                forwardUnit: undefined,
+                mixWithOthers: undefined,
+                autoPageAdvance: false,
+                scrollToTop: true,
+              });
+            }}
+          >
+            Reset
+          </Dialog.Action>
+        </Dialog.Actions>
+      </Dialog.Root>
+    </>
+  );
+
+  const sleepPart = (
+    <>
       <List.SubHeader theme={theme}>
         {`Sleep timer — ${formatSleepTimer(sleep.state)}`}
       </List.SubHeader>
@@ -324,7 +396,7 @@ const ListenSettingsSection: React.FC<Props> = ({
         theme={theme}
       />
 
-      <List.SubHeader theme={theme}>Playback</List.SubHeader>
+      <List.SubHeader theme={theme}>Auto-pause</List.SubHeader>
       <ChipRow
         label="Auto-pause after no interaction"
         options={AUTO_PAUSE_MINUTES}
@@ -333,24 +405,19 @@ const ListenSettingsSection: React.FC<Props> = ({
         onSelect={autoPauseMinutes => update({ autoPauseMinutes })}
         theme={theme}
       />
-      <ReaderSheetPreferenceItem
-        label="Play alongside other media"
-        description="Keeps reading when other apps play sound. Calls will no longer pause it."
-        value={current.mixWithOthers === true}
-        onPress={() =>
-          update({ mixWithOthers: !(current.mixWithOthers === true) })
-        }
-        theme={theme}
-      />
     </>
   );
 
+  if (part === 'sleep') return sleepPart;
   return part === 'voice' ? voicePart : playbackPart;
 };
 
 export default React.memo(ListenSettingsSection);
 
 const styles = StyleSheet.create({
+  locked: {
+    opacity: 0.45,
+  },
   input: {
     marginTop: 8,
   },

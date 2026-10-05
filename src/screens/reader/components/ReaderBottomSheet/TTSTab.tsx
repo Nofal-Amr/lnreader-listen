@@ -297,10 +297,11 @@ const EnginePickerModal: React.FC<EnginePickerModalProps> = ({
   );
 };
 
-type SubTab = 'voice' | 'playback' | 'text' | 'rules';
+type SubTab = 'voice' | 'playback' | 'sleep' | 'text' | 'rules';
 const SUB_TABS: SegmentedControlOption<SubTab>[] = [
   { value: 'voice', label: 'Voice' },
-  { value: 'playback', label: 'Playback' },
+  { value: 'playback', label: 'Play' },
+  { value: 'sleep', label: 'Sleep' },
   { value: 'text', label: 'Text' },
   { value: 'rules', label: 'Rules' },
 ];
@@ -461,41 +462,59 @@ const TTSTab: React.FC = () => {
                     }
                     theme={theme}
                   />
-                  <List.SubHeader theme={theme}>Reader</List.SubHeader>
-                  <ReaderSheetPreferenceItem
-                    description={getString(
-                      'readerScreen.bottomSheet.ttsAutoPageAdvanceDescription',
-                    )}
-                    label="Auto Page Advance"
-                    value={tts?.autoPageAdvance === true}
-                    onPress={() =>
-                      setChapterReaderSettings({
-                        tts: {
-                          ...tts,
-                          autoPageAdvance: !(tts?.autoPageAdvance === true),
-                        },
-                      })
+                  <View
+                    pointerEvents={
+                      tts?.playbackLocked !== false ? 'none' : 'auto'
                     }
-                    theme={theme}
-                  />
+                    style={
+                      tts?.playbackLocked !== false ? styles.locked : undefined
+                    }
+                  >
+                    <List.SubHeader theme={theme}>Reader</List.SubHeader>
+                    <ReaderSheetPreferenceItem
+                      description={getString(
+                        'readerScreen.bottomSheet.ttsAutoPageAdvanceDescription',
+                      )}
+                      label="Auto Page Advance"
+                      value={tts?.autoPageAdvance === true}
+                      onPress={() =>
+                        setChapterReaderSettings({
+                          tts: {
+                            ...tts,
+                            autoPageAdvance: !(tts?.autoPageAdvance === true),
+                          },
+                        })
+                      }
+                      theme={theme}
+                    />
 
-                  <ReaderSheetPreferenceItem
-                    description={getString(
-                      'readerScreen.bottomSheet.ttsScrollToTopDescription',
-                    )}
-                    label="Scroll to Top"
-                    value={tts?.scrollToTop !== false}
-                    onPress={() =>
-                      setChapterReaderSettings({
-                        tts: {
-                          ...tts,
-                          scrollToTop: !(tts?.scrollToTop !== false),
-                        },
-                      })
-                    }
-                    theme={theme}
-                  />
+                    <ReaderSheetPreferenceItem
+                      description={getString(
+                        'readerScreen.bottomSheet.ttsScrollToTopDescription',
+                      )}
+                      label="Scroll to Top"
+                      value={tts?.scrollToTop !== false}
+                      onPress={() =>
+                        setChapterReaderSettings({
+                          tts: {
+                            ...tts,
+                            scrollToTop: !(tts?.scrollToTop !== false),
+                          },
+                        })
+                      }
+                      theme={theme}
+                    />
+                  </View>
                 </>
+              ) : null}
+
+              {subTab === 'sleep' ? (
+                <ListenSettingsSection
+                  part="sleep"
+                  tts={tts}
+                  setTts={nextTts => setChapterReaderSettings({ tts: nextTts })}
+                  theme={theme}
+                />
               ) : null}
 
               {subTab === 'text' || subTab === 'rules' ? (
@@ -542,6 +561,9 @@ const styles = StyleSheet.create({
   },
   section: {
     marginVertical: 8,
+  },
+  locked: {
+    opacity: 0.45,
   },
   subTabs: {
     paddingHorizontal: 16,

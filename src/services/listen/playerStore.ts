@@ -14,6 +14,7 @@ import {
   type ChapterReaderSettings,
 } from '@hooks/persisted/useSettings';
 import { getMMKVObject } from '@utils/mmkv/mmkv';
+import { showToast } from '@utils/showToast';
 
 import { fixTitle } from './cleaner/fixTitle';
 import { extractTtsParagraphs } from './extractTtsParagraphs';
@@ -76,12 +77,20 @@ export const usePlayerStore = create<PlayerState>(() => initial);
 
 onSharedSession(session => {
   session.addOnStateChangedListener(state =>
-    usePlayerStore.setState({ state }),
+    // A pause reason only stays until playback resumes.
+    usePlayerStore.setState(
+      state === 'playing' ? { state, error: null } : { state },
+    ),
   );
   session.addOnProgressChangedListener(progress =>
     usePlayerStore.setState({ progress }),
   );
-  session.addOnErrorListener(error => usePlayerStore.setState({ error }));
+  session.addOnErrorListener(error => {
+    usePlayerStore.setState({ error });
+    // Pause reasons ("headphones disconnected", "another app started
+    // playing audio"…) also show as a toast so unexplained pauses are visible.
+    showToast(error);
+  });
   session.addOnSleepTimerChangedListener(sleep =>
     usePlayerStore.setState({ sleep }),
   );

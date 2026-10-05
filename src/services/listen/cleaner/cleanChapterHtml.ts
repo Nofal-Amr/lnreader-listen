@@ -78,16 +78,37 @@ const titleKey = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, '');
  * Runs before the reader renders AND before ListenQueue extracts paragraphs,
  * so the reader's paragraph indices and the native TTS queue stay aligned.
  */
-export const cleanChapterHtml = (
+/** What one cleaning pass changed, shown in the Clean tab. */
+export interface CleanReport {
+  removed: number;
+  cut: number;
+  ruleEdits: number;
+  titleFixed: boolean;
+  enabled: boolean;
+}
+
+export const cleanChapterHtml = (html: string, options: CleanerOptions) =>
+  cleanChapterHtmlWithReport(html, options).html;
+
+export const cleanChapterHtmlWithReport = (
   html: string,
   options: CleanerOptions,
-): string => {
+): { html: string; report: CleanReport } => {
+  const report: CleanReport = {
+    removed: 0,
+    cut: 0,
+    ruleEdits: 0,
+    titleFixed: false,
+    enabled: true,
+  };
   const det = detectorFor(options);
   const rules = (options.rules ?? [])
     .filter(rule => rule.enabled !== false)
     .map(rule => [ruleRegex(rule), rule.replace] as const)
     .filter((pair): pair is [RegExp, string] => pair[0] !== null);
-  if (!det && !options.fixTitles && !rules.length) return html;
+  if (!det && !options.fixTitles && !rules.length) {
+    return { html, report: { ...report, enabled: false } };
+  }
   const $ = load(html, null, false);
   // Strip invisible characters hidden inside watermark names first.
   const stripInvisible = (node: AnyNode) => {
@@ -121,6 +142,7 @@ export const cleanChapterHtml = (
         for (const [re, replacement] of rules) {
           text = text.replace(re, replacement);
         }
+        if (text !== node.data) report.ruleEdits += 1;
         node.data = text;
       } else if (isElement(node)) {
         node.children.forEach(applyRules);
@@ -150,6 +172,7 @@ export const cleanChapterHtml = (
         });
       if (links.length) {
         if (countWords(blockText(el)) <= 25) {
+          report.removed += 1;
           $el.remove();
           continue;
         }
@@ -162,8 +185,13 @@ export const cleanChapterHtml = (
         raw,
         HEADING_TAGS.has(el.name.toLowerCase()),
       );
-      if (verdict.action === 'remove') $el.remove();
-      else if (verdict.action === 'edit') $el.text(applyVerdict(raw, verdict));
+      if (verdict.action === 'remove') {
+        report.removed += 1;
+        $el.remove();
+      } else if (verdict.action === 'edit') {
+        report.cut += 1;
+        $el.text(applyVerdict(raw, verdict));
+      }
     }
   }
 
@@ -186,10 +214,13 @@ export const cleanChapterHtml = (
         $(el).remove();
         continue;
       }
-      if (fixed !== raw) $(el).text(fixed);
+      if (fixed !== raw) {
+        report.titleFixed = true;
+        $(el).text(fixed);
+      }
       previousKey = key;
     }
   }
 
-  return $.html();
+  return { html: $.html(), report };
 };

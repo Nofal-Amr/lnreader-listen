@@ -44,7 +44,7 @@ internal class TtsPlaybackService : Service() {
     private val noisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                TtsPlaybackStore.pause()
+                TtsPlaybackStore.pauseFor("Paused: headphones disconnected.")
             }
         }
     }
@@ -56,6 +56,7 @@ internal class TtsPlaybackService : Service() {
             ACTION_STOP -> TtsPlaybackStore.stop()
             ACTION_PREVIOUS -> TtsPlaybackStore.skipPrevious()
             ACTION_NEXT -> TtsPlaybackStore.skipNext()
+            ACTION_SLEEP -> TtsPlaybackStore.cycleSleepTimer()
         }
         return START_NOT_STICKY
     }
@@ -77,6 +78,7 @@ internal class TtsPlaybackService : Service() {
         internal const val ACTION_STOP = "com.lnreader.TTS_STOP"
         internal const val ACTION_PREVIOUS = "com.lnreader.TTS_PREVIOUS"
         internal const val ACTION_NEXT = "com.lnreader.TTS_NEXT"
+        internal const val ACTION_SLEEP = "com.lnreader.TTS_SLEEP"
 
         fun start(context: Context) {
             val intent = Intent(context, TtsPlaybackService::class.java)

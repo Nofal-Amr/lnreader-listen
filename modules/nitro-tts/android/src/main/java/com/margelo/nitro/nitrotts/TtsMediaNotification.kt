@@ -47,7 +47,11 @@ internal class TtsMediaNotification(
 
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(snapshot.metadata?.chapterName ?: "Text to speech")
-            .setContentText(progressLabel ?: snapshot.metadata?.novelName ?: "LNReader")
+            .setContentText(
+                listOfNotNull(TtsPlaybackStore.sleepLabel(), progressLabel)
+                    .joinToString(" · ")
+                    .ifEmpty { snapshot.metadata?.novelName ?: "Vonkai Novel Reader" },
+            )
             .setSubText(snapshot.metadata?.novelName)
             .setSmallIcon(context.applicationInfo.icon)
             .setContentIntent(contentIntent())
@@ -68,6 +72,13 @@ internal class TtsMediaNotification(
                     android.R.drawable.ic_media_next,
                     "Next paragraph",
                     TtsPlaybackService.ACTION_NEXT,
+                ),
+            )
+            .addAction(
+                action(
+                    android.R.drawable.ic_lock_idle_alarm,
+                    TtsPlaybackStore.sleepLabel() ?: "Sleep timer",
+                    TtsPlaybackService.ACTION_SLEEP,
                 ),
             )
             .setStyle(
