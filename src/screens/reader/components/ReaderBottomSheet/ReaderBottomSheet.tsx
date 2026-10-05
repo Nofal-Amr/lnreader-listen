@@ -29,6 +29,7 @@ import ReaderTextAlignSelector from './ReaderTextAlignSelector';
 import ReaderValueChange from './ReaderValueChange';
 import ReaderFontPicker from './ReaderFontPicker';
 import TTSTab from './TTSTab';
+import { ChapterContextBridge, useChapterContext } from '../../ChapterContext';
 import CleanTab from './CleanTab';
 import SwipeDistanceSlider from './SwipeDistanceSlider';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
@@ -247,6 +248,8 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
 }) => {
   const theme = useTheme();
   const layout = useWindowDimensions();
+  // Read here (inside the reader tree) and bridged into the sheet portal.
+  const chapterContext = useChapterContext();
 
   const tabHeaderColor = theme.surfaceContainerLow ?? theme.surface;
 
@@ -290,21 +293,23 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
   return (
     <BottomSheet bottomSheetRef={bottomSheetRef} snapPoints={[360, 600]}>
       <BottomSheetView style={styles.flex}>
-        <TabView
-          commonOptions={{
-            label: renderLabel,
-          }}
-          navigationState={{ index, routes }}
-          renderTabBar={renderTabBar}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{ width: layout.width }}
-          style={styles.tabView}
-          // Without this every tab is mounted at once – the TTS tab alone
-          // enumerates the device's engines and voices over the bridge.
-          lazy
-          renderLazyPlaceholder={renderLazyPlaceholder}
-        />
+        <ChapterContextBridge value={chapterContext}>
+          <TabView
+            commonOptions={{
+              label: renderLabel,
+            }}
+            navigationState={{ index, routes }}
+            renderTabBar={renderTabBar}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+            initialLayout={{ width: layout.width }}
+            style={styles.tabView}
+            // Without this every tab is mounted at once – the TTS tab alone
+            // enumerates the device's engines and voices over the bridge.
+            lazy
+            renderLazyPlaceholder={renderLazyPlaceholder}
+          />
+        </ChapterContextBridge>
       </BottomSheetView>
     </BottomSheet>
   );

@@ -53,6 +53,20 @@ export function ChapterContextProvider({
   );
 }
 
+/**
+ * Re-provides the chapter context inside portals (the settings bottom sheet
+ * renders outside the reader tree, where the context would otherwise be empty).
+ */
+export const ChapterContextBridge = ({
+  value,
+  children,
+}: {
+  value: ChapterContextType;
+  children: React.ReactNode;
+}) => (
+  <ChapterContext.Provider value={value}>{children}</ChapterContext.Provider>
+);
+
 export const useChapterContext = () => {
   return useContext(ChapterContext);
 };

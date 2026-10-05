@@ -22,9 +22,11 @@ const CleanTab: React.FC = () => {
   // otherwise keeps the already-cleaned text in memory).
   const setTts = (next: ChapterReaderSettings['tts']) => {
     setChapterReaderSettings({ tts: next });
-    refetch();
+    refetch?.();
   };
-  const report = describeCleanReport(getCleanReport(chapter.id));
+  const report = describeCleanReport(
+    chapter ? getCleanReport(chapter.id) : undefined,
+  );
   return (
     <BottomSheetScrollView
       style={styles.container}
