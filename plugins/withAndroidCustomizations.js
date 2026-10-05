@@ -3,6 +3,7 @@ const {
   withAndroidColors,
   withAndroidColorsNight,
   withAndroidStyles,
+  withAndroidManifest,
   withAppBuildGradle,
   withDangerousMod,
 } = require('@expo/config-plugins');
@@ -182,7 +183,54 @@ const withAndroidVariantAssets = config =>
     },
   ]);
 
+/**
+ * Samsung pop-up view / split screen: the main activity is explicitly
+ * resizable, and window changes that pop-up view causes (size, density,
+ * dark/light) are handled in place instead of restarting the activity, which
+ * would reload the reader or the browser page. The Samsung meta-data opts in
+ * on older One UI versions that still check it.
+ */
+const SAMSUNG_MULTIWINDOW_META = [
+  'com.samsung.android.sdk.multiwindow.enable',
+  'com.samsung.android.sdk.multiwindow.penwindow.enable',
+  'com.sec.android.support.multiwindow',
+];
+const EXTRA_CONFIG_CHANGES = [
+  'density',
+  'uiMode',
+  'screenSize',
+  'smallestScreenSize',
+  'screenLayout',
+  'orientation',
+];
+
+const withPopUpViewSupport = config =>
+  withAndroidManifest(config, config => {
+    const app = AndroidConfig.Manifest.getMainApplicationOrThrow(
+      config.modResults,
+    );
+    const activity = AndroidConfig.Manifest.getMainActivityOrThrow(
+      config.modResults,
+    );
+    activity.$['android:resizeableActivity'] = 'true';
+    const changes = new Set(
+      (activity.$['android:configChanges'] || '').split('|').filter(Boolean),
+    );
+    EXTRA_CONFIG_CHANGES.forEach(c => changes.add(c));
+    activity.$['android:configChanges'] = [...changes].join('|');
+    app['meta-data'] = app['meta-data'] || [];
+    for (const name of SAMSUNG_MULTIWINDOW_META) {
+      if (!app['meta-data'].some(m => m.$['android:name'] === name)) {
+        app['meta-data'].push({
+          $: { 'android:name': name, 'android:value': 'true' },
+        });
+      }
+    }
+    return config;
+  });
+
 module.exports = config => {
+  config = withPopUpViewSupport(config);
   config = withBuildGradleCustomizations(config);
   config = withWindowBackgroundColors(config);
   config = withWindowBackgroundStyle(config);
