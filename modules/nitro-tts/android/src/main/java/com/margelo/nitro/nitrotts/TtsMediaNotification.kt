@@ -26,6 +26,12 @@ internal class TtsMediaNotification(
         mediaSession.isActive = true
     }
 
+    // White book silhouette made for the status bar; the app icon as fallback.
+    private val smallIcon: Int =
+        context.resources
+            .getIdentifier("notification_icon", "drawable", context.packageName)
+            .takeIf { it != 0 } ?: context.applicationInfo.icon
+
     fun build(snapshot: TtsPlaybackSnapshot): Notification {
         updateMediaSession(snapshot)
 
@@ -53,10 +59,14 @@ internal class TtsMediaNotification(
                     .ifEmpty { snapshot.metadata?.novelName ?: "Vonkai Novel Reader" },
             )
             .setSubText(snapshot.metadata?.novelName)
-            .setSmallIcon(context.applicationInfo.icon)
+            .setSmallIcon(smallIcon)
             .setContentIntent(contentIntent())
             .setDeleteIntent(serviceIntent(TtsPlaybackService.ACTION_STOP))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            // Android 12+ may hold a service's notification back for ~10 s
+            // while the app is open; show the controls straight away.
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setOnlyAlertOnce(true)
             .setOngoing(isPlaying)
             .addAction(
