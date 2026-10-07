@@ -1,4 +1,6 @@
 import { Tts, type TtsSession } from '@modules/nitro-tts';
+import { askForPostNotificationsPermission } from '@utils/askForPostNoftificationsPermission';
+import { showToast } from '@utils/showToast';
 
 let sessionPromise: Promise<TtsSession> | null = null;
 let ready: TtsSession | null = null;
@@ -20,6 +22,17 @@ export const onSharedSession = (init: (session: TtsSession) => void) => {
  */
 export const getSharedSession = (): Promise<TtsSession> => {
   if (!sessionPromise) {
+    // Android 13+ hides the playback notification (and its controls) until
+    // the app may post notifications.
+    askForPostNotificationsPermission()
+      .then(granted => {
+        if (!granted) {
+          showToast(
+            'Playback controls are hidden: allow notifications for Vonkai in Android Settings → Apps.',
+          );
+        }
+      })
+      .catch(() => {});
     sessionPromise = Tts.createSession()
       .then(session => {
         ready = session;

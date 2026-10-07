@@ -29,6 +29,7 @@ describe('parseRules', () => {
         matchCase: false,
         wholeWord: true,
         enabled: false,
+        onPage: true,
       },
     ];
     expect(strip(parseRules(exportRules(rules)))).toEqual([
@@ -39,6 +40,7 @@ describe('parseRules', () => {
         matchCase: false,
         wholeWord: true,
         enabled: false,
+        onPage: true,
       },
     ]);
   });

@@ -8,6 +8,7 @@ import type { CleanerOptions } from './cleaner/cleanChapterHtml';
 import {
   compileSpeechRules,
   DEFAULT_SPEECH_RULE_SETTINGS,
+  type SpeechRule,
   type SpeechRuleSettings,
   type SpokenParagraph,
 } from './speechRules';
@@ -23,13 +24,17 @@ export const DEFAULT_CLEANER_OPTIONS: CleanerOptions = {
 const readTts = () =>
   getMMKVObject<ChapterReaderSettings>(CHAPTER_READER_SETTINGS)?.tts;
 
+/** Rules switched on for the page text; the rest only change what is read aloud. */
+export const pageRules = (rules: SpeechRule[]) =>
+  rules.filter(rule => rule.onPage === true && rule.enabled !== false);
+
 /** Watermark/title cleaning options, read fresh so settings apply at once. */
 export const getCleanerOptions = (): CleanerOptions => {
   const speech = getSpeechRuleSettings();
   return {
     ...DEFAULT_CLEANER_OPTIONS,
     ...readTts()?.cleaner,
-    rules: speech.rulesOnPage ? speech.rules : [],
+    rules: pageRules(speech.rules),
   };
 };
 

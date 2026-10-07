@@ -338,30 +338,64 @@ const TTSController = () => {
     controllerElement.style.bottom = 'auto';
   };
 
-  // Remember where the reader put the bubble (default: top left).
+  // Remember where the reader dragged the bubble. The start position comes
+  // from the "Bubble start position" setting; changing that setting forgets
+  // the dragged spot so the new start position applies.
   const POSITION_KEY = 'lnl.ttsControllerPosition';
+  const bubblePreset = () =>
+    reader.generalSettings.val.ttsBubblePosition || 'top-left';
   const saveControllerPosition = () => {
     try {
       const bounds = controllerElement.getBoundingClientRect();
       localStorage.setItem(
         POSITION_KEY,
-        JSON.stringify({ left: bounds.left, top: bounds.top }),
+        JSON.stringify({
+          left: bounds.left,
+          top: bounds.top,
+          preset: bubblePreset(),
+        }),
       );
     } catch (e) {}
   };
+  const placeAtPreset = preset => {
+    const bounds = controllerElement.getBoundingClientRect();
+    const [row, side] = preset.split('-');
+    const top =
+      row === 'bottom'
+        ? window.innerHeight - bounds.height - 96
+        : row === 'middle'
+        ? (window.innerHeight - bounds.height) / 2
+        : 72;
+    const left = side === 'right' ? window.innerWidth - bounds.width - 12 : 12;
+    controllerElement.style.left = left + 'px';
+    controllerElement.style.top = top + 'px';
+  };
   const restoreControllerPosition = () => {
     try {
-      const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null');
       controllerElement ??= document.getElementById('TTS-Controller');
-      if (!saved || !controllerElement) return;
-      controllerElement.style.left = saved.left + 'px';
-      controllerElement.style.top = saved.top + 'px';
+      if (!controllerElement) return;
+      const preset = bubblePreset();
+      const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null');
+      if (saved && (saved.preset || 'top-left') === preset) {
+        controllerElement.style.left = saved.left + 'px';
+        controllerElement.style.top = saved.top + 'px';
+      } else {
+        placeAtPreset(preset);
+      }
       controllerElement.style.right = 'auto';
       controllerElement.style.bottom = 'auto';
       clampControllerToViewport();
     } catch (e) {}
   };
   setTimeout(restoreControllerPosition, 0);
+  let lastPreset = null;
+  van.derive(() => {
+    const preset = bubblePreset();
+    if (lastPreset !== null && preset !== lastPreset) {
+      setTimeout(restoreControllerPosition, 0);
+    }
+    lastPreset = preset;
+  });
 
   const clampControllerToViewport = () => {
     const bounds = controllerElement.getBoundingClientRect();

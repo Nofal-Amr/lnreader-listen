@@ -34,6 +34,7 @@ export const parseRules = (input: string): SpeechRule[] => {
           matchCase: !!r.matchCase,
           wholeWord: !!r.wholeWord,
           enabled: r.enabled !== false,
+          onPage: r.onPage === true,
         }));
     } catch {
       // Not JSON after all: fall through to line parsing.

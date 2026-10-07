@@ -55,6 +55,7 @@ export const initialChapterGeneralSettings = {
   pageReader: false,
   swipeGestures: false,
   swipeDistance: 0.4,
+  ttsBubblePosition: 'top-left',
   showScrollPercentage: true,
   useVolumeButtons: false,
   volumeButtonsOffset: null,

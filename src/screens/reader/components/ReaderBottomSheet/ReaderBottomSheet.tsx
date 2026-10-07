@@ -32,6 +32,7 @@ import TTSTab from './TTSTab';
 import { ChapterContextBridge, useChapterContext } from '../../ChapterContext';
 import CleanTab from './CleanTab';
 import SwipeDistanceSlider from './SwipeDistanceSlider';
+import BubblePositionPicker from './BubblePositionPicker';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { StringMap } from '@i18n/types';
 
@@ -226,6 +227,15 @@ const GeneralTab: React.FC = React.memo(() => {
         }
         return renderPreference(item);
       })}
+      {settings.TTSEnable !== false ? (
+        <BubblePositionPicker
+          value={settings.ttsBubblePosition}
+          onChange={ttsBubblePosition =>
+            setChapterGeneralSettings({ ttsBubblePosition })
+          }
+          theme={theme}
+        />
+      ) : null}
     </BottomSheetScrollView>
   );
 });

@@ -186,6 +186,14 @@ export const getLibraryDefaultCategoryId = (): number | undefined => {
     : undefined;
 };
 
+export type TtsBubblePosition =
+  | 'top-left'
+  | 'top-right'
+  | 'middle-left'
+  | 'middle-right'
+  | 'bottom-left'
+  | 'bottom-right';
+
 export interface ChapterGeneralSettings {
   keepScreenOn: boolean;
   fullScreenMode: boolean;
@@ -193,6 +201,8 @@ export interface ChapterGeneralSettings {
   swipeGestures: boolean;
   /** Share of the screen width a swipe must travel to change chapter. */
   swipeDistance?: number;
+  /** Where the read-aloud bubble starts, e.g. "top-left" or "middle-right". */
+  ttsBubblePosition?: TtsBubblePosition;
   showScrollPercentage: boolean;
   useVolumeButtons: boolean;
   volumeButtonsOffset: number | null;
@@ -337,6 +347,7 @@ export const initialChapterGeneralSettings: ChapterGeneralSettings = {
   pageReader: false,
   swipeGestures: false,
   swipeDistance: 0.4,
+  ttsBubblePosition: 'top-left',
   showScrollPercentage: true,
   useVolumeButtons: false,
   volumeButtonsOffset: null,

@@ -101,7 +101,7 @@ const RuleEditor = ({
     setLastRule(rule);
     setDraft(rule ?? EMPTY_RULE);
   }
-  const toggle = (key: 'regex' | 'matchCase' | 'wholeWord') =>
+  const toggle = (key: 'regex' | 'matchCase' | 'wholeWord' | 'onPage') =>
     setDraft(d => ({ ...d, [key]: !d[key] }));
 
   return (
@@ -120,6 +120,21 @@ const RuleEditor = ({
           value={draft.replace}
           onChangeText={replace => setDraft(d => ({ ...d, replace }))}
           style={styles.input}
+        />
+        <ReaderSheetPreferenceItem
+          label="Also change the page text"
+          description="Off: only what is read aloud changes."
+          value={!!draft.onPage}
+          onPress={() => toggle('onPage')}
+          theme={theme}
+        />
+        <ReaderSheetPreferenceItem
+          label="Rule on"
+          value={draft.enabled !== false}
+          onPress={() =>
+            setDraft(d => ({ ...d, enabled: d.enabled === false }))
+          }
+          theme={theme}
         />
         <ReaderSheetPreferenceItem
           label="Whole word"
@@ -239,14 +254,6 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
         }
         theme={theme}
       />
-
-      <ReaderSheetPreferenceItem
-        label="Apply custom rules to the page text too"
-        description="Off: your Remove/Replace rules only change what is read aloud."
-        value={speech.rulesOnPage}
-        onPress={() => setSpeech({ rulesOnPage: !speech.rulesOnPage })}
-        theme={theme}
-      />
     </>
   );
 
@@ -323,7 +330,13 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
         <List.Item
           key={rule.id}
           title={describeRule(rule)}
-          description={rule.enabled === false ? 'Disabled' : undefined}
+          description={
+            rule.enabled === false
+              ? 'Off'
+              : rule.onPage
+              ? 'Read aloud and page text'
+              : 'Read aloud only'
+          }
           onPress={() => setEditing(rule)}
           right="pencil"
           theme={theme}

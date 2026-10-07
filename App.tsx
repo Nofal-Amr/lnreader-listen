@@ -20,6 +20,7 @@ import Main from './src/navigators/Main';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useInitDatabase } from '@database/db';
 import { useInitializeAppServices } from '@hooks/common/useInitializeAppServices';
+import { seedDefaultRepository } from '@database/seedDefaultRepository';
 import { opSqliteAdapter } from './src/rozenite/opSqliteAdapter';
 import { useRozeniteSqlitePlugin } from '@rozenite/sqlite-plugin';
 import { ThemeProvider, useTheme } from '@hooks/persisted/useTheme';
@@ -70,6 +71,10 @@ const Application = () => {
   const { success: databaseReady, error: databaseError } = useInitDatabase();
   const { ready: servicesReady, error: servicesError } =
     useInitializeAppServices(Boolean(databaseReady));
+
+  useEffect(() => {
+    if (databaseReady) seedDefaultRepository().catch(() => {});
+  }, [databaseReady]);
 
   useEffect(() => {
     if ((databaseReady && servicesReady) || databaseError || servicesError) {

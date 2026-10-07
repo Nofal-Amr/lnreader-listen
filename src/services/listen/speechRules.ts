@@ -8,6 +8,8 @@ export interface SpeechRule {
   matchCase?: boolean;
   wholeWord?: boolean;
   enabled?: boolean;
+  /** Also change the text shown on the page (default: only what is read aloud). */
+  onPage?: boolean;
 }
 
 /** What to do with emoji: drop them, let the voice read their names, or say a word. */
@@ -25,8 +27,8 @@ export interface SpeechRuleSettings {
   emojiMode: EmojiMode;
   emojiReplacement: string;
   sectionBreak: SectionBreakMode;
-  /** Also apply custom rules to the text shown in the reader. */
-  rulesOnPage: boolean;
+  /** @deprecated Each rule now has its own `onPage` switch. */
+  rulesOnPage?: boolean;
   rules: SpeechRule[];
 }
 
@@ -41,13 +43,29 @@ const SECTION_BREAK_WORDS = 'Section break.';
 
 /** Phrases carried over from the user's T2S rules. */
 export const DEFAULT_SPEECH_RULES: SpeechRule[] = [
-  { id: 't2s-1', find: 'Continue your adventure with .Côm', replace: '' },
-  { id: 't2s-2', find: 'Source: .com, updated by novlove.com', replace: '' },
-  { id: 't2s-3', find: 'Your adventure continues at .Côm', replace: '' },
+  {
+    id: 't2s-1',
+    onPage: true,
+    find: 'Continue your adventure with .Côm',
+    replace: '',
+  },
+  {
+    id: 't2s-2',
+    onPage: true,
+    find: 'Source: .com, updated by novlove.com',
+    replace: '',
+  },
+  {
+    id: 't2s-3',
+    onPage: true,
+    find: 'Your adventure continues at .Côm',
+    replace: '',
+  },
   {
     id: 't2s-4',
     find: 'Ad Blocker Detected Please disable your ad blocker to support our website and continue enjoying free content.',
     replace: '',
+    onPage: true,
   },
 ];
 
@@ -59,7 +77,6 @@ export const DEFAULT_SPEECH_RULE_SETTINGS: SpeechRuleSettings = {
   emojiMode: 'remove',
   emojiReplacement: '',
   sectionBreak: 'pause',
-  rulesOnPage: true,
   rules: DEFAULT_SPEECH_RULES,
 };
 

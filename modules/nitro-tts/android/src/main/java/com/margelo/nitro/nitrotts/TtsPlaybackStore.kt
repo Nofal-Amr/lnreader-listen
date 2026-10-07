@@ -35,6 +35,8 @@ internal object TtsPlaybackStore {
     private const val WAIT_FOR_CHAPTER_MS = 30_000L
     private const val DEFAULT_PARAGRAPH_PAUSE_MS = 250L
     private const val DEFAULT_CHAPTER_PAUSE_MS = 800L
+    // How long the silent track keeps running after a pause (see emitState).
+    private const val KEEP_ALIVE_AFTER_PAUSE_MS = 15 * 60 * 1000L
 
     private var applicationContext: Context? = null
     private var engine: TextToSpeech? = null
@@ -72,6 +74,8 @@ internal object TtsPlaybackStore {
             }
         },
     )
+    private val stopKeepAlive = Runnable { keepAlive.stop() }
+
     private val autoPause = Runnable {
         if (state == TtsPlaybackState.PLAYING) {
             pauseFor("Paused after ${settings.autoPauseMinutes?.toInt() ?: 0} minutes without interaction.")
@@ -792,10 +796,16 @@ internal object TtsPlaybackStore {
     private fun emitState() {
         // Keep this app the "active player" while reading so media buttons
         // (headphones, watch, Bluetooth) come here and not to a music app.
-        if (state == TtsPlaybackState.PLAYING || state == TtsPlaybackState.LOADING) {
-            keepAlive.start()
-        } else {
-            keepAlive.stop()
+        // It keeps running for a while after a pause too: if it stopped at the
+        // same moment as the voice, Android could count the TTS engine (which
+        // has no media session) as the last player and hand the next Play
+        // press - e.g. a Bluetooth headset reconnecting - to a music app.
+        ownerHandler.removeCallbacks(stopKeepAlive)
+        when (state) {
+            TtsPlaybackState.PLAYING, TtsPlaybackState.LOADING -> keepAlive.start()
+            TtsPlaybackState.PAUSED, TtsPlaybackState.ERROR ->
+                ownerHandler.postDelayed(stopKeepAlive, KEEP_ALIVE_AFTER_PAUSE_MS)
+            else -> keepAlive.stop()
         }
         stateListeners.emit(state)
         snapshotListeners.emit(snapshot())

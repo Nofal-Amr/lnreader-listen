@@ -185,9 +185,11 @@ const withAndroidVariantAssets = config =>
 
 /**
  * Samsung pop-up view / split screen: the main activity is explicitly
- * resizable, and window changes that pop-up view causes (size, density,
- * dark/light) are handled in place instead of restarting the activity, which
- * would reload the reader or the browser page. The Samsung meta-data opts in
+ * resizable, and window changes that pop-up view causes (size, dark/light)
+ * are handled in place instead of restarting the activity, which would reload
+ * the reader or the browser page. Density is deliberately NOT handled in
+ * place: pop-up view rescales the window, and React Native keeps its old
+ * pixel ratio, so drawing and touch positions drift apart (buttons miss). The Samsung meta-data opts in
  * on older One UI versions that still check it.
  */
 const SAMSUNG_MULTIWINDOW_META = [
@@ -196,7 +198,6 @@ const SAMSUNG_MULTIWINDOW_META = [
   'com.sec.android.support.multiwindow',
 ];
 const EXTRA_CONFIG_CHANGES = [
-  'density',
   'uiMode',
   'screenSize',
   'smallestScreenSize',
