@@ -10,7 +10,7 @@ import {
 import { Image, type ImageContentFit, type ImageProps } from 'expo-image';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
 
-import { defaultCover } from '@plugins/helpers/constants';
+import { isMissingCoverUri } from '@utils/novelCover';
 import type { ImageRequestInit } from '@plugins/types';
 import type { ThemeColors } from '@theme/types';
 
@@ -35,10 +35,7 @@ interface NovelCoverImageProps
   uri?: string | null;
 }
 
-export const isMissingNovelCover = (uri?: string | null) => {
-  const normalizedUri = uri?.trim();
-  return !normalizedUri || normalizedUri === defaultCover;
-};
+export const isMissingNovelCover = isMissingCoverUri;
 
 const NovelCoverImage = ({
   iconSize = 32,
@@ -103,7 +100,9 @@ const NovelCoverImage = ({
         accessible={accessible}
         onLayout={onLayout}
         onError={event => {
-          setFailedUri(normalizedUri);
+          // Deferred: a re-render inside the image loader's own error
+          // callback makes it start a new load there, which crashes.
+          setTimeout(() => setFailedUri(normalizedUri), 0);
           onError?.({ error: event.nativeEvent.error });
         }}
         resizeMode={toReactNativeResizeMode(contentFit)}
@@ -122,7 +121,7 @@ const NovelCoverImage = ({
       contentFit={contentFit}
       onLayout={onLayout}
       onError={event => {
-        setFailedUri(normalizedUri);
+        setTimeout(() => setFailedUri(normalizedUri), 0);
         onError?.(event);
       }}
       priority={priority}

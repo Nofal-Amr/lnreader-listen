@@ -250,6 +250,8 @@ export interface ChapterReaderSettings {
     rewindUnit?: TtsSkipUnit;
     forwardUnit?: TtsSkipUnit;
     mixWithOthers?: boolean;
+    /** Show the novel cover in the playback notification (default on). */
+    notificationCover?: boolean;
     autoPauseMinutes?: number;
     shakeToExtend?: boolean;
     favourites?: TtsFavourite[];

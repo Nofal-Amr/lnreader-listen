@@ -1,4 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 
 import { defaultCover } from '@plugins/helpers/constants';
 import type { ThemeColors } from '@theme/types';
@@ -30,7 +35,7 @@ describe('NovelCoverImage', () => {
     expect(screen.getByTestId('novel-cover').props.source).toBeUndefined();
   });
 
-  it('replaces a cover with the placeholder when loading fails', () => {
+  it('replaces a cover with the placeholder when loading fails', async () => {
     render(
       <NovelCoverImage
         testID="novel-cover"
@@ -51,10 +56,13 @@ describe('NovelCoverImage', () => {
       nativeEvent: { error: 'Failed to load image' },
     });
 
+    // The switch to the placeholder is deferred out of the loader callback.
+    await waitFor(() =>
+      expect(screen.getByTestId('novel-cover').props.source).toBeUndefined(),
+    );
     expect(screen.getByTestId('novel-cover')).toHaveStyle({
       backgroundColor: theme.surfaceVariant,
     });
-    expect(screen.getByTestId('novel-cover').props.source).toBeUndefined();
   });
 
   it('preserves request bodies through the React Native compatibility path', () => {

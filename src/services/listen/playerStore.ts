@@ -1,3 +1,4 @@
+import { notificationCoverUri } from './notificationCover';
 import { create } from 'zustand';
 
 import type {
@@ -221,7 +222,7 @@ export const playChapter = async (
         novelName: novel.name,
         chapterName: fixTitle(chapter.name),
         chapterId: String(chapter.id),
-        coverUri: novel.cover || undefined,
+        coverUri: notificationCoverUri(novel.cover),
       },
       toNativeTtsSettings(readerTts()),
     );

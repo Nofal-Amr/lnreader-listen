@@ -88,7 +88,9 @@ const CoverImage = memo(
       <ImageBackground
         cachePolicy="memory-disk"
         contentFit="cover"
-        onError={() => setFailedUri(source.uri)}
+        // Deferred so the image loader is not re-entered from its own error
+        // callback (that crashed the app on covers that fail to load).
+        onError={() => setTimeout(() => setFailedUri(source.uri), 0)}
         source={source}
         style={styles.coverImage}
       >

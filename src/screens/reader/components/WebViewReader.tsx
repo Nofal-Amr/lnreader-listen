@@ -28,7 +28,8 @@ import { useChapterContext } from '../ChapterContext';
 import { ReaderSearchResult } from '../types';
 import { useTtsSession } from '../hooks/useTtsSession';
 import { listenQueue } from '@services/listen/ListenQueue';
-import { setNowPlaying } from '@services/listen/playerStore';
+import { notificationCoverUri } from '@services/listen/notificationCover';
+import { setNowPlaying, usePlayerStore } from '@services/listen/playerStore';
 import {
   areTtsSettingsEqual,
   toNativeTtsSettings,
@@ -57,6 +58,18 @@ type WebViewReaderProps = {
   onTouchStart?(): void;
   onSearchResult(result: ReaderSearchResult): void;
   searchTextRef: React.MutableRefObject<string>;
+};
+
+/**
+ * The text native TTS is speaking, as a JS literal for the WebView. The page
+ * matches it against its own paragraphs, so the highlight stays on the right
+ * one even if the page and the voice count paragraphs slightly differently.
+ */
+const spokenText = (chapterId: number, index: number) => {
+  const player = usePlayerStore.getState();
+  const text =
+    player.chapter?.id === chapterId ? player.paragraphs[index] : undefined;
+  return JSON.stringify(text ?? null);
 };
 
 const onLogMessage = (payload: { nativeEvent: { data: string } }) => {
@@ -203,7 +216,10 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
     const listening = listenQueue.currentChapterId();
     if (ttsProgress.total > 0 && (!listening || listening === chapter.id)) {
       webViewRef.current?.injectJavaScript(`
-        window.tts?.setActiveIndex?.(${ttsProgress.index});
+        window.tts?.setActiveIndex?.(${ttsProgress.index}, ${spokenText(
+        chapter.id,
+        ttsProgress.index,
+      )});
         true;
       `);
     }
@@ -498,7 +514,10 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
             webViewRef.current?.injectJavaScript(`
               window.tts?.attach?.();
               window.tts?.setPlaybackState?.(${JSON.stringify(ttsState)});
-              window.tts?.setActiveIndex?.(${ttsProgress.index});
+              window.tts?.setActiveIndex?.(${ttsProgress.index}, ${spokenText(
+              chapter.id,
+              ttsProgress.index,
+            )});
               true;
             `);
           }
@@ -544,7 +563,7 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
                 {
                   novelName: novel?.name || 'Unknown',
                   chapterName: chapter.name,
-                  coverUri: novel?.cover || undefined,
+                  coverUri: notificationCoverUri(novel?.cover),
                   chapterId: String(chapter.id),
                 },
                 toNativeTtsSettings(readerSettingsRef.current.tts),

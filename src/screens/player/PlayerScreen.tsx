@@ -12,6 +12,7 @@ import { Chip } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Dialog, Slider } from '@components';
+import { isMissingNovelCover } from '@components/NovelCoverImage';
 import { useChapterReaderSettings, useTheme } from '@hooks/persisted';
 import type { MaterialDesignIconName } from '@type/icon';
 import { fixTitle } from '@services/listen/cleaner/fixTitle';
@@ -179,7 +180,7 @@ const PlayerScreen = ({
       </View>
 
       <View style={styles.top}>
-        {novel.cover ? (
+        {novel.cover && !isMissingNovelCover(novel.cover) ? (
           <Image source={{ uri: novel.cover }} style={styles.cover} />
         ) : (
           <View style={[styles.cover, { backgroundColor: theme.primary }]} />

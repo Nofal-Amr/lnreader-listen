@@ -448,9 +448,24 @@ window.tts = new (function () {
     if (progress) progress.textContent = '';
   };
 
-  this.setActiveIndex = index => {
+  this.setActiveIndex = (index, spokenText) => {
     if (!this.allReadableElements.length) return;
-    const targetIndex = Math.max(0, Math.min(index, this.totalElements - 1));
+    let targetIndex = Math.max(0, Math.min(index, this.totalElements - 1));
+    // Prefer the paragraph whose text is the one being spoken, nearest to
+    // the given index, in case the page and the voice disagree on numbering.
+    const want = spokenText ? this.normalizeText(spokenText) : '';
+    if (want && this.textQueue[targetIndex] !== want) {
+      let best = -1;
+      this.textQueue.forEach((text, i) => {
+        if (
+          text === want &&
+          (best < 0 || Math.abs(i - index) < Math.abs(best - index))
+        ) {
+          best = i;
+        }
+      });
+      if (best >= 0) targetIndex = best;
+    }
     this.currentElement?.classList?.remove('highlight');
     this.currentElement = this.allReadableElements[targetIndex];
     this.elementsRead = targetIndex + 1;

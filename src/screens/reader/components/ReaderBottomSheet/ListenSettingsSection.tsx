@@ -306,6 +306,15 @@ const ListenSettingsSection: React.FC<Props> = ({
           theme={theme}
         />
       </View>
+      <ReaderSheetPreferenceItem
+        label="Show novel cover in notification"
+        description="Applies from the next chapter that starts playing."
+        value={current.notificationCover !== false}
+        onPress={() =>
+          update({ notificationCover: current.notificationCover === false })
+        }
+        theme={theme}
+      />
       <List.Item
         title="Reset playback settings to defaults"
         description="Pauses, skip range and audio sharing."

@@ -12,6 +12,7 @@ import { extractTtsParagraphs } from './extractTtsParagraphs';
 import { loadChapterHtml } from './loadChapterHtml';
 import { claimPlayback } from './sharedSession';
 import { toTtsParagraphs } from './textPipeline';
+import { notificationCoverUri } from './notificationCover';
 
 export type ListenNovel = {
   id: number;
@@ -98,7 +99,7 @@ export const createListenQueue = (deps: ListenQueueDeps) => {
           novelName: novel.name,
           chapterName: fixTitle(cursor.name),
           chapterId: String(cursor.id),
-          coverUri: novel.cover || undefined,
+          coverUri: notificationCoverUri(novel.cover),
         },
       });
       return;

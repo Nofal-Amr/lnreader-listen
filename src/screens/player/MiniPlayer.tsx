@@ -3,6 +3,7 @@ import Icon from '@react-native-vector-icons/material-design-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { isMissingNovelCover } from '@components/NovelCoverImage';
 import { useTheme } from '@hooks/persisted';
 import type { RootStackParamList } from '@navigators/types';
 import {
@@ -36,7 +37,7 @@ const MiniPlayer = () => {
       accessibilityLabel="Open player"
     >
       <View style={styles.row}>
-        {novel.cover ? (
+        {novel.cover && !isMissingNovelCover(novel.cover) ? (
           <Image source={{ uri: novel.cover }} style={styles.cover} />
         ) : (
           <View style={[styles.cover, { backgroundColor: theme.primary }]} />

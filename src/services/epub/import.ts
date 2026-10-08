@@ -47,11 +47,15 @@ const insertLocalNovel = async (
     await updateNovelCategoryById(insertId, [2]);
     const novelDir = NOVEL_STORAGE + '/local/' + insertId;
     await NativeFile.mkdir(novelDir);
-    const newCoverPath = `file://${novelDir}/${cover?.split(/[/\\]/).pop()}`;
-
-    if (cover) {
+    // EPUBs without a cover image (common for fan-fiction exports) must not
+    // get the novel folder itself as their cover: loading a folder as an
+    // image crashed the app.
+    const coverName = cover?.split(/[/\\]/).pop();
+    let newCoverPath: string | undefined;
+    if (cover && coverName) {
       const decodedPath = decodePath(cover);
       if (await NativeFile.exists(decodedPath)) {
+        newCoverPath = `file://${novelDir}/${coverName}`;
         await NativeFile.moveFile(decodedPath, newCoverPath);
       }
     }
