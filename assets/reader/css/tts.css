@@ -17,7 +17,7 @@
   gap: 2px;
   padding: 4px;
   position: fixed;
-  top: 72px;
+  top: calc(var(--StatusBar-currentHeight, 24px) + 84px);
   left: 12px;
   opacity: 0.78;
   z-index: 2147483647;

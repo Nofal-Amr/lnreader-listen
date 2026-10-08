@@ -341,7 +341,8 @@ const TTSController = () => {
   // Remember where the reader dragged the bubble. The start position comes
   // from the "Bubble start position" setting; changing that setting forgets
   // the dragged spot so the new start position applies.
-  const POSITION_KEY = 'lnl.ttsControllerPosition';
+  // v2: older saved spots sat under the top bar, so they are not reused.
+  const POSITION_KEY = 'lnl.ttsControllerPosition.v2';
   const bubblePreset = () =>
     reader.generalSettings.val.ttsBubblePosition || 'top-left';
   const saveControllerPosition = () => {
@@ -360,12 +361,20 @@ const TTSController = () => {
   const placeAtPreset = preset => {
     const bounds = controllerElement.getBoundingClientRect();
     const [row, side] = preset.split('-');
+    // Clear of the reader's top bar (status bar + title bar) and of the
+    // bottom bar with the progress slider, so the bars never cover it.
+    const statusBar =
+      parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          '--StatusBar-currentHeight',
+        ),
+      ) || 24;
     const top =
       row === 'bottom'
-        ? window.innerHeight - bounds.height - 96
+        ? window.innerHeight - bounds.height - 190
         : row === 'middle'
         ? (window.innerHeight - bounds.height) / 2
-        : 72;
+        : statusBar + 84;
     const left = side === 'right' ? window.innerWidth - bounds.width - 12 : 12;
     controllerElement.style.left = left + 'px';
     controllerElement.style.top = top + 'px';
