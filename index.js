@@ -4,8 +4,12 @@ import { AppRegistry, I18nManager } from 'react-native';
 import { i18n } from './src/i18n/translations';
 import { runHeadlessBackgroundTask } from './src/services/backgroundTasks';
 import { installJsCrashHandler } from './src/services/crashLogs/installJsCrashHandler';
+import { installPopUpPressFix } from './src/utils/fixPressInPopUp';
+
+import App from './App';
 
 installJsCrashHandler();
+installPopUpPressFix();
 
 AppRegistry.registerHeadlessTask(
   'LNReaderBackgroundTask',
@@ -15,8 +19,6 @@ AppRegistry.registerHeadlessTask(
 const isRTL = i18n.locale.startsWith('ar') || i18n.locale.startsWith('he');
 I18nManager.allowRTL(isRTL);
 I18nManager.forceRTL(isRTL);
-
-import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,
