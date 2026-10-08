@@ -595,7 +595,10 @@ internal object TtsPlaybackStore {
         val params = Bundle().apply {
             putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, sleepTimer.volume())
         }
-        val result = activeEngine.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        // Shout markers are only for the online voice; same-length spaces here
+        // keep word positions (highlight, resume) lined up.
+        val spoken = text.replace(OnlineVoice.SHOUT_OPEN, " ").replace(OnlineVoice.SHOUT_CLOSE, " ")
+        val result = activeEngine.speak(spoken, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
         if (result == TextToSpeech.ERROR) {
             fail("The text-to-speech engine rejected the current paragraph.")
         }

@@ -12,6 +12,7 @@ import {
   SECTION_BREAK_PAUSE_MS,
   type EmojiMode,
   type SectionBreakMode,
+  type ShoutMode,
   type SpeechRule,
   type SpeechRuleSettings,
 } from '@services/listen/speechRules';
@@ -39,6 +40,11 @@ const SECTION_OPTIONS: [SectionBreakMode, string][] = [
   ['pause', 'Pause'],
   ['say', 'Say "Section break"'],
   ['skip', 'Skip'],
+];
+const SHOUT_OPTIONS: [ShoutMode, string][] = [
+  ['words', 'Read as words'],
+  ['loud', 'Louder (online voice)'],
+  ['keep', 'Leave as is'],
 ];
 const EMOJI_OPTIONS: [EmojiMode, string][] = [
   ['remove', 'Remove'],
@@ -309,6 +315,15 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
           theme={theme}
         />
       ) : null}
+
+      <List.SubHeader theme={theme}>Shouting (ALL CAPS)</List.SubHeader>
+      <ChoiceRow
+        label='Words like "DRAG HER AWAY!" (voices may spell them letter by letter)'
+        options={SHOUT_OPTIONS}
+        selected={speech.shoutMode ?? 'words'}
+        onSelect={shoutMode => setSpeech({ shoutMode })}
+        theme={theme}
+      />
 
       <List.SubHeader theme={theme}>Emoji</List.SubHeader>
       <ChoiceRow

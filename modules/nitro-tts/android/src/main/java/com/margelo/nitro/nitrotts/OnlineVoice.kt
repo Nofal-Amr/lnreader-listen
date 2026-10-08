@@ -35,6 +35,9 @@ import kotlin.math.roundToInt
 internal object OnlineVoice {
     const val ENGINE_NAME = "lnreader.online"
     const val ENGINE_LABEL = "Microsoft Edge voices (online)"
+    // Wrap ALL-CAPS "shouting" (marked by the app, see speechRules.ts).
+    val SHOUT_OPEN: String = Char(0xE000).toString()
+    val SHOUT_CLOSE: String = Char(0xE001).toString()
 
     val VOICES: List<Pair<String, String>> = listOf(
         "en-US-SteffanNeural" to "Steffan (US)",
@@ -385,8 +388,13 @@ internal object OnlineVoice {
         val pitchText = if (pitch >= 0) "+${pitch}Hz" else "${pitch}Hz"
         return "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='$locale'>" +
             "<voice name='$name'><prosody pitch='$pitchText' rate='$rateText' volume='+0%'>" +
-            escapeXml(request.text) + "</prosody></voice></speak>"
+            shoutToSsml(escapeXml(request.text)) + "</prosody></voice></speak>"
     }
+
+    // Shouted words (marked by the app) are read louder and a little higher.
+    private fun shoutToSsml(text: String) = text
+        .replace(SHOUT_OPEN, "<prosody volume='+40%' pitch='+8%'>")
+        .replace(SHOUT_CLOSE, "</prosody>")
 
     private fun escapeXml(text: String) = text
         .replace("&", "&amp;")

@@ -15,6 +15,43 @@ export interface SpeechRule {
 /** What to do with emoji: drop them, let the voice read their names, or say a word. */
 export type EmojiMode = 'remove' | 'keep' | 'replace';
 
+/**
+ * ALL-CAPS words ("DRAG HER AWAY DOG!"): leave them, read them as normal
+ * words (engines otherwise may spell them out letter by letter), or read
+ * them as words AND louder (online voice; device voices just read them).
+ */
+export type ShoutMode = 'keep' | 'words' | 'loud';
+
+/** Wraps shouted text for the online voice; device voices see spaces. */
+export const SHOUT_OPEN = String.fromCharCode(0xe000);
+export const SHOUT_CLOSE = String.fromCharCode(0xe001);
+
+const CAPS_WORD = "[A-Z](?:[A-Z'’]*[A-Z])?";
+const CAPS_RUN = new RegExp(
+  `(?<![A-Za-z])${CAPS_WORD}(?:[\\s,\\-]+${CAPS_WORD})*(?![A-Za-z])`,
+  'g',
+);
+const ROMAN = /^[IVXLCDM]+$/;
+
+/** Rewrites runs of capital letters per the shout mode. */
+export const applyShoutMode = (text: string, mode: ShoutMode): string => {
+  if (mode === 'keep') return text;
+  return text.replace(CAPS_RUN, run => {
+    const words = run.split(/[\s,-]+/).filter(Boolean);
+    const longest = Math.max(
+      ...words.map(word => word.replace(/[^A-Z]/g, '').length),
+    );
+    // Short acronyms (OK, FBI, "OK TV"), lone "I"/"A" and Roman numerals
+    // stay; a long word, or several words, is shouting.
+    if (words.length === 1 && ROMAN.test(words[0])) return run;
+    const shouting =
+      longest >= 4 || (words.length >= 2 && longest >= 3) || words.length >= 3;
+    if (!shouting) return run;
+    const spoken = run.toLowerCase();
+    return mode === 'loud' ? `${SHOUT_OPEN}${spoken}${SHOUT_CLOSE}` : spoken;
+  });
+};
+
 /** Lines like "_____", "=====", "* * *" or "..": skip, pause, or say "Section break". */
 export type SectionBreakMode = 'skip' | 'pause' | 'say';
 
@@ -27,6 +64,8 @@ export interface SpeechRuleSettings {
   emojiMode: EmojiMode;
   emojiReplacement: string;
   sectionBreak: SectionBreakMode;
+  /** ALL-CAPS "shouting" (default: read as normal words). */
+  shoutMode?: ShoutMode;
   /** Silence for a section break when `sectionBreak` is "pause". */
   sectionBreakPauseMs?: number;
   /** @deprecated Each rule now has its own `onPage` switch. */
@@ -141,6 +180,7 @@ export const compileSpeechRules = (
     for (const [re, replacement] of custom) {
       text = text.replace(re, replacement);
     }
+    text = applyShoutMode(text, settings.shoutMode ?? 'words');
     if (settings.emojiMode === 'remove') {
       text = text.replace(EMOJI_RE, ' ');
     } else if (settings.emojiMode === 'replace') {
