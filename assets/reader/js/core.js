@@ -319,10 +319,11 @@ window.tts = new (function () {
     this.totalElements = this.allReadableElements.length;
     this.textQueue = readableEntries.map(entry => entry.text);
 
+    // No paragraph given: start where the reader is looking, not at the top.
     const requestedIndex =
       element && element !== reader.chapterElement
         ? this.allReadableElements.indexOf(startElement)
-        : 0;
+        : this.firstVisibleIndex();
     const startIndex = requestedIndex >= 0 ? requestedIndex : 0;
 
     this.started = this.totalElements > 0;
@@ -351,6 +352,36 @@ window.tts = new (function () {
     this.totalElements = this.allReadableElements.length;
     this.textQueue = readableEntries.map(entry => entry.text);
     this.started = this.totalElements > 0;
+  };
+
+  this.firstVisibleIndex = () => {
+    const height = window.innerHeight || document.documentElement.clientHeight;
+    const index = this.allReadableElements.findIndex(el => {
+      const rect = el.getBoundingClientRect();
+      if (reader.generalSettings.val.pageReader) {
+        return rect.right > 0 && rect.left < window.innerWidth;
+      }
+      return rect.bottom > 40 && rect.top < height;
+    });
+    return index >= 0 ? index : 0;
+  };
+
+  // Double-tap a paragraph: read aloud from there.
+  this.readFrom = target => {
+    let el = target;
+    while (el && el !== reader.chapterElement && !this.readable(el)) {
+      el = el.parentElement;
+    }
+    if (!el || el === reader.chapterElement) return;
+    if (this.started) {
+      const index = this.allReadableElements.indexOf(el);
+      if (index >= 0) {
+        this.seekTo(index);
+        if (!this.reading) this.resume();
+        return;
+      }
+    }
+    this.start(el);
   };
 
   // Get all readable elements in order
@@ -500,6 +531,9 @@ window.tts = new (function () {
       rect.left < window.innerWidth &&
       rect.right > 0;
 
+    // A paragraph taller than the screen that is already showing: leave the
+    // scroll alone, or every new sentence would jump back to its first line.
+    if (isPartiallyVisible && rect.height > windowHeight * 0.8) return;
     // Only scroll if element is not visible or barely visible
     if (!isPartiallyVisible || rect.top < 0 || rect.bottom > windowHeight) {
       // Check scrollToTop setting (default to true for better reading experience)
@@ -530,6 +564,14 @@ window.tts = new (function () {
     this.rewind();
   };
 })();
+
+// Double-tap any paragraph to read aloud from it.
+document.addEventListener('dblclick', e => {
+  if (reader.generalSettings.val.TTSEnable === false) return;
+  if (e.target?.closest?.('#TTS-Controller')) return;
+  window.getSelection()?.removeAllRanges();
+  tts.readFrom(e.target);
+});
 
 // Watch for TTSEnable changes and stop TTS when disabled
 van.derive(() => {

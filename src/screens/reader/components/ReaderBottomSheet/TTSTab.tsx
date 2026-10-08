@@ -15,8 +15,8 @@ import {
   useChapterGeneralSettings,
   useChapterReaderSettings,
 } from '@hooks/persisted';
-import { getString } from '@i18n/translations';
-import { Chip } from 'react-native-paper';
+import { Chip, TextInput } from 'react-native-paper';
+import { describeVoice, languageLabel } from '@services/listen/voiceLabels';
 import ReaderSheetPreferenceItem from './ReaderSheetPreferenceItem';
 import ListenSettingsSection from './ListenSettingsSection';
 import SpeechRulesSection from './SpeechRulesSection';
@@ -38,6 +38,7 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
 }) => {
   const theme = useTheme();
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [query, setQuery] = useState('');
   // Get system language safely using getLocales()
   const systemLocale = getLocales()[0]?.languageCode || 'en';
 
@@ -58,8 +59,17 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
     });
   }, [voices, systemLocale]);
 
-  // Filter voices by selected languages
+  // Filter voices by search text, else by selected languages
   const filteredVoices = useMemo(() => {
+    const words = query.toLowerCase().split(/s+/).filter(Boolean);
+    if (words.length) {
+      return voices.filter(voice => {
+        const { title, detail } = describeVoice(voice);
+        const haystack =
+          `${title} ${detail} ${voice.name} ${voice.language}`.toLowerCase();
+        return words.every(word => haystack.includes(word));
+      });
+    }
     if (selectedLanguages.length === 0) {
       // Show system language voices by default
       return voices.filter(voice => {
@@ -72,7 +82,7 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
       const lang = voice.language?.split('-')[0];
       return lang && selectedLanguages.includes(lang);
     });
-  }, [voices, selectedLanguages, systemLocale]);
+  }, [voices, selectedLanguages, systemLocale, query]);
 
   const toggleLanguage = (lang: string) => {
     setSelectedLanguages(prev => {
@@ -86,6 +96,7 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
 
   const handleDismiss = () => {
     setSelectedLanguages([]);
+    setQuery('');
     onDismiss();
   };
 
@@ -97,6 +108,14 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
     >
       <Dialog.Title>Select Voice</Dialog.Title>
       <Dialog.Content>
+        <TextInput
+          mode="outlined"
+          dense
+          label="Search voices (name, language, offline…)"
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+        />
         <View style={styles.languageFilterContainer}>
           <Text style={[styles.filterLabel, { color: theme.onSurfaceVariant }]}>
             Filter by language:
@@ -127,7 +146,7 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
                     { color: isActive ? theme.onPrimary : theme.onSurface },
                   ]}
                 >
-                  {lang.toUpperCase()}
+                  {languageLabel(lang)}
                   {isSystemLang && ' (System)'}
                 </Chip>
               );
@@ -162,7 +181,9 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
             <Text
               style={[styles.noVoicesText, { color: theme.onSurfaceVariant }]}
             >
-              No voices available for selected languages
+              {query
+                ? 'No voices match your search'
+                : 'No voices available for selected languages'}
             </Text>
           ) : (
             filteredVoices.map((voice: TtsVoice, index: number) => (
@@ -183,18 +204,18 @@ const VoicePickerModal: React.FC<VoicePickerModalProps> = ({
                   <Text
                     style={[styles.voiceItemText, { color: theme.onSurface }]}
                   >
-                    {voice.name}
+                    {describeVoice(voice).title}
                   </Text>
-                  {voice.language ? (
-                    <Text
-                      style={[
-                        styles.voiceItemLanguage,
-                        { color: theme.onSurfaceVariant },
-                      ]}
-                    >
-                      {voice.language}
-                    </Text>
-                  ) : null}
+                  <Text
+                    style={[
+                      styles.voiceItemLanguage,
+                      { color: theme.onSurfaceVariant },
+                    ]}
+                  >
+                    {[describeVoice(voice).detail, voice.name]
+                      .filter((part, i, all) => part && all.indexOf(part) === i)
+                      .join(' · ')}
+                  </Text>
                 </View>
                 {currentVoice?.identifier === voice.identifier ? (
                   <Text style={[styles.checkIcon, { color: theme.primary }]}>
@@ -392,7 +413,11 @@ const TTSTab: React.FC = () => {
 
                   <List.Item
                     title="Voice"
-                    description={tts?.voice?.name || 'System default'}
+                    description={
+                      tts?.voice
+                        ? describeVoice(tts.voice).title
+                        : 'System default'
+                    }
                     onPress={() => setVoiceModalVisible(true)}
                     right="chevron-right"
                     theme={theme}
@@ -472,10 +497,8 @@ const TTSTab: React.FC = () => {
                   >
                     <List.SubHeader theme={theme}>Reader</List.SubHeader>
                     <ReaderSheetPreferenceItem
-                      description={getString(
-                        'readerScreen.bottomSheet.ttsAutoPageAdvanceDescription',
-                      )}
-                      label="Auto Page Advance"
+                      description="When a chapter ends, open the next one on screen too (reading aloud continues either way)."
+                      label="Turn to the next chapter on screen"
                       value={tts?.autoPageAdvance === true}
                       onPress={() =>
                         setChapterReaderSettings({
@@ -489,10 +512,8 @@ const TTSTab: React.FC = () => {
                     />
 
                     <ReaderSheetPreferenceItem
-                      description={getString(
-                        'readerScreen.bottomSheet.ttsScrollToTopDescription',
-                      )}
-                      label="Scroll to Top"
+                      description="On: the paragraph being read is moved near the top of the screen. Off: it is kept in the middle. Tip: double-tap any paragraph to read from there."
+                      label="Follow the voice: paragraph at top"
                       value={tts?.scrollToTop !== false}
                       onPress={() =>
                         setChapterReaderSettings({
@@ -553,6 +574,7 @@ const TTSTab: React.FC = () => {
 export default React.memo(TTSTab);
 
 const styles = StyleSheet.create({
+  searchInput: { marginBottom: 8 },
   container: {
     flex: 1,
   },

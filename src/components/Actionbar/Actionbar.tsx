@@ -5,6 +5,7 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
+  Text,
   ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +15,8 @@ import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 type Action = {
   icon: MaterialDesignIconName;
+  /** Short text under the icon, e.g. "Mark unread". */
+  label?: string;
   onPress: () => void;
 };
 
@@ -49,9 +52,11 @@ export const Actionbar: React.FC<ActionbarProps> = ({
         viewStyle,
       ]}
     >
-      {actions.map(({ icon, onPress }, id) => (
+      {actions.map(({ icon, label, onPress }, id) => (
         <Pressable
           key={id}
+          style={styles.action}
+          accessibilityLabel={label}
           android_ripple={{
             radius: 50,
             color: theme.rippleColor,
@@ -64,6 +69,14 @@ export const Actionbar: React.FC<ActionbarProps> = ({
             color={theme.onSurface}
             size={24}
           />
+          {label ? (
+            <Text
+              numberOfLines={2}
+              style={[styles.label, { color: theme.onSurface }]}
+            >
+              {label}
+            </Text>
+          ) : null}
         </Pressable>
       ))}
     </Animated.View>
@@ -71,6 +84,8 @@ export const Actionbar: React.FC<ActionbarProps> = ({
 };
 
 const styles = StyleSheet.create({
+  action: { alignItems: 'center', flex: 1, paddingVertical: 6 },
+  label: { fontSize: 11, marginTop: 4, textAlign: 'center' },
   actionbarContainer: {
     alignItems: 'center',
     bottom: 0,

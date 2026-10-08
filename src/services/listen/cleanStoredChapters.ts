@@ -2,6 +2,7 @@ import NativeFile from '@modules/native-file';
 import { NOVEL_STORAGE } from '@utils/Storages';
 
 import { cleanChapterHtml } from './cleaner/cleanChapterHtml';
+import { splitBrParagraphs } from './cleaner/splitBrParagraphs';
 import { getCleanerOptions } from './textPipeline';
 
 type StoredChapter = { id: number; novelId: number };
@@ -92,5 +93,9 @@ export const restoreStoredChapters = async (
 /** Cleans chapter HTML before it is first saved, when that option is on. */
 export const cleanForStorage = (html: string): string => {
   const options = getCleanerOptions();
-  return options.cleanOnSave ? cleanChapterHtml(html, options) : html;
+  // Real paragraphs are always saved, even with permanent cleaning off, so a
+  // <br>-only chapter (fan-fiction exports) never reaches the reader as one block.
+  return options.cleanOnSave
+    ? cleanChapterHtml(html, options)
+    : splitBrParagraphs(html);
 };

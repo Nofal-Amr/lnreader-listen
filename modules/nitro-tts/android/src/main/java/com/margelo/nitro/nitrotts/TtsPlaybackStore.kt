@@ -279,11 +279,27 @@ internal object TtsPlaybackStore {
         applicationContext?.let { TtsPlaybackService.stop(it) }
     }
 
+    /**
+     * The online voice gives no word positions, so estimate where it is from
+     * how much of the clip has played, snapped back to that sentence's start.
+     */
+    private fun trackOnlinePosition() {
+        if (state != TtsPlaybackState.PLAYING) return
+        val fraction = OnlineVoice.playedFraction() ?: return
+        val paragraph = paragraphs.getOrNull(currentIndex) ?: return
+        val estimate = charStart + ((utteranceEnd - charStart) * fraction).toInt()
+        val sentenceStart = paragraph.breaks
+            ?.filter { it.kind == TtsBreakKind.SENTENCE && it.offset.toInt() <= estimate }
+            ?.maxOfOrNull { it.offset.toInt() } ?: 0
+        spokenPos = sentenceStart.coerceIn(charStart, paragraph.text.length)
+    }
+
     /** Stops the engine and marks playback paused, without touching audio focus. */
     private fun pauseEngine() {
         if (state != TtsPlaybackState.PLAYING) {
             return
         }
+        trackOnlinePosition()
         generation += 1
         stopSpeech()
         // Resume from the word being spoken, not the start of the sentence.
@@ -376,6 +392,7 @@ internal object TtsPlaybackStore {
     fun skipPrevious() {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before seeking." }
         noteInteraction()
+        trackOnlinePosition()
         val unit = settings.rewindUnit ?: TtsSkipUnit.CLAUSE
         val target = TtsSpeechCursor.previousStart(paragraphs[currentIndex], spokenPos, unit)
         when {
@@ -392,6 +409,7 @@ internal object TtsPlaybackStore {
     fun skipNext() {
         check(paragraphs.isNotEmpty()) { "Load a paragraph queue before seeking." }
         noteInteraction()
+        trackOnlinePosition()
         val unit = settings.forwardUnit ?: TtsSkipUnit.SENTENCE
         val target = TtsSpeechCursor.nextStart(paragraphs[currentIndex], spokenPos, unit)
         when {
@@ -541,7 +559,7 @@ internal object TtsPlaybackStore {
         val paragraph = paragraphs[currentIndex]
         charStart = charStart.coerceIn(0, paragraph.text.length)
         val splitClauses = (settings.pauseCommaMs ?: 0.0) > 0
-        val (end, kind) = TtsSpeechCursor.utteranceEnd(paragraph, charStart, splitClauses)
+        val (end, kind) = TtsSpeechCursor.utteranceEnd(paragraph, charStart, splitClauses, splitSentences())
         utteranceEnd = end
         utteranceKind = kind
         spokenPos = charStart
@@ -613,18 +631,20 @@ internal object TtsPlaybackStore {
         nextUtteranceText()?.let { OnlineVoice.prefetch(onlineRequest(it)) }
     }
 
+    private fun splitSentences() = (settings.pauseSentenceMs ?: 0.0) > 0
+
     /** Text of the utterance after the current one, for online prefetching. */
     private fun nextUtteranceText(): String? {
         val splitClauses = (settings.pauseCommaMs ?: 0.0) > 0
         val paragraph = paragraphs.getOrNull(currentIndex) ?: return null
         if (utteranceEnd < paragraph.text.length) {
-            val (end, _) = TtsSpeechCursor.utteranceEnd(paragraph, utteranceEnd, splitClauses)
+            val (end, _) = TtsSpeechCursor.utteranceEnd(paragraph, utteranceEnd, splitClauses, splitSentences())
             return paragraph.text.substring(utteranceEnd, end).takeIf { it.isNotBlank() }
         }
         val next = paragraphs.getOrNull(currentIndex + 1)
             ?: upcoming.firstOrNull()?.paragraphs?.firstOrNull()
             ?: return null
-        val (end, _) = TtsSpeechCursor.utteranceEnd(next, 0, splitClauses)
+        val (end, _) = TtsSpeechCursor.utteranceEnd(next, 0, splitClauses, splitSentences())
         return next.text.substring(0, end).takeIf { it.isNotBlank() }
     }
 

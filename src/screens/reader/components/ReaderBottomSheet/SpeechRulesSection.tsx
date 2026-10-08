@@ -9,6 +9,7 @@ import type { ThemeColors } from '@theme/types';
 import type { Sensitivity } from '@services/listen/cleaner/patterns';
 import {
   DEFAULT_SPEECH_RULE_SETTINGS,
+  SECTION_BREAK_PAUSE_MS,
   type EmojiMode,
   type SectionBreakMode,
   type SpeechRule,
@@ -19,6 +20,7 @@ import { exportRules, parseRules } from '@services/listen/ruleImport';
 import { showToast } from '@utils/showToast';
 
 import ReaderSheetPreferenceItem from './ReaderSheetPreferenceItem';
+import { PauseSlider } from './ListenSettingsSection';
 
 type ReaderTts = NonNullable<ChapterReaderSettings['tts']>;
 
@@ -299,6 +301,14 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
         onSelect={sectionBreak => setSpeech({ sectionBreak })}
         theme={theme}
       />
+      {speech.sectionBreak === 'pause' ? (
+        <PauseSlider
+          label="Section break pause"
+          value={speech.sectionBreakPauseMs ?? SECTION_BREAK_PAUSE_MS}
+          onChange={sectionBreakPauseMs => setSpeech({ sectionBreakPauseMs })}
+          theme={theme}
+        />
+      ) : null}
 
       <List.SubHeader theme={theme}>Emoji</List.SubHeader>
       <ChoiceRow

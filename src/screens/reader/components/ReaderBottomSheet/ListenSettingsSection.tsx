@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { describeVoice } from '@services/listen/voiceLabels';
 import { Chip, TextInput } from 'react-native-paper';
 
 import { Dialog, List, Slider } from '@components';
@@ -36,7 +37,7 @@ const SKIP_UNITS: TtsSkipUnit[] = ['clause', 'sentence', 'paragraph'];
 const SLEEP_MINUTES = [15, 30, 45, 60, 90];
 const AUTO_PAUSE_MINUTES = [0, 10, 20, 30, 60];
 
-const PauseSlider = ({
+export const PauseSlider = ({
   label,
   value,
   onChange,
@@ -159,7 +160,10 @@ const ListenSettingsSection: React.FC<Props> = ({
       engine: current.engine,
       voice: current.voice,
       label:
-        [current.engine?.label, current.voice?.name]
+        [
+          current.engine?.label,
+          current.voice ? describeVoice(current.voice).title : undefined,
+        ]
           .filter(Boolean)
           .join(' · ') || 'System default',
     };

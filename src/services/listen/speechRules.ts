@@ -27,6 +27,8 @@ export interface SpeechRuleSettings {
   emojiMode: EmojiMode;
   emojiReplacement: string;
   sectionBreak: SectionBreakMode;
+  /** Silence for a section break when `sectionBreak` is "pause". */
+  sectionBreakPauseMs?: number;
   /** @deprecated Each rule now has its own `onPage` switch. */
   rulesOnPage?: boolean;
   rules: SpeechRule[];
@@ -163,7 +165,10 @@ export const compileSpeechRules = (
         case 'say':
           return { text: SECTION_BREAK_WORDS };
         case 'pause':
-          return { text: '', pauseMs: SECTION_BREAK_PAUSE_MS };
+          return {
+            text: '',
+            pauseMs: settings.sectionBreakPauseMs ?? SECTION_BREAK_PAUSE_MS,
+          };
         default:
           return { text: '' };
       }

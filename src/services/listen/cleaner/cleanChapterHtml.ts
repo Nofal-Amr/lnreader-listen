@@ -3,6 +3,7 @@ import { load, type AnyNode, type Element } from 'cheerio';
 import { judgeParagraph, applyVerdict } from './cleanParagraph';
 import { Detector, INVISIBLE_RE, countWords, looksLikeTitle } from './detector';
 import { fixTitle } from './fixTitle';
+import { splitBrParagraphs } from './splitBrParagraphs';
 import type { Sensitivity } from './patterns';
 import { ruleRegex, type SpeechRule } from '../speechRules';
 
@@ -94,6 +95,8 @@ export const cleanChapterHtmlWithReport = (
   html: string,
   options: CleanerOptions,
 ): { html: string; report: CleanReport } => {
+  // Always on: real paragraphs for chapters that only use <br> line breaks.
+  html = splitBrParagraphs(html);
   const report: CleanReport = {
     removed: 0,
     cut: 0,

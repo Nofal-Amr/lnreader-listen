@@ -17,13 +17,35 @@ internal object TtsSpeechCursor {
     private fun breaksOf(paragraph: TtsParagraph): List<TtsBreak> =
         paragraph.breaks?.sortedBy { it.offset } ?: emptyList()
 
-    /** End (exclusive) of the utterance starting at [from], and the boundary it ends on. */
-    fun utteranceEnd(paragraph: TtsParagraph, from: Int, splitClauses: Boolean): Pair<Int, BoundaryKind> {
+    // Engines reject very long input (Android caps it near 4000 characters).
+    private const val MAX_UTTERANCE_CHARS = 3000
+
+    /**
+     * End (exclusive) of the utterance starting at [from], and the boundary it ends on.
+     * Without sentence/clause pauses the whole paragraph is one utterance: no gap
+     * between sentences, and the voice hears the full context (better "?" / "!" tone).
+     */
+    fun utteranceEnd(
+        paragraph: TtsParagraph,
+        from: Int,
+        splitClauses: Boolean,
+        splitSentences: Boolean = true,
+    ): Pair<Int, BoundaryKind> {
+        var lastSentence = -1
         for (b in breaksOf(paragraph)) {
             val offset = b.offset.toInt()
             if (offset <= from || offset >= paragraph.text.length) continue
-            if (b.kind == TtsBreakKind.SENTENCE) return offset to BoundaryKind.SENTENCE
-            if (splitClauses) return offset to BoundaryKind.CLAUSE
+            val tooLong = offset - from > MAX_UTTERANCE_CHARS
+            if (tooLong && lastSentence > from) return lastSentence to BoundaryKind.SENTENCE
+            if (b.kind == TtsBreakKind.SENTENCE) {
+                if (splitSentences || tooLong) return offset to BoundaryKind.SENTENCE
+                lastSentence = offset
+            } else if (splitClauses || (tooLong && lastSentence <= from)) {
+                return offset to BoundaryKind.CLAUSE
+            }
+        }
+        if (paragraph.text.length - from > MAX_UTTERANCE_CHARS && lastSentence > from) {
+            return lastSentence to BoundaryKind.SENTENCE
         }
         return paragraph.text.length to BoundaryKind.PARAGRAPH
     }

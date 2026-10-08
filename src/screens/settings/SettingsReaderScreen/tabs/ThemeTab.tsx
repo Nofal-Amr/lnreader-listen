@@ -44,6 +44,7 @@ const ThemeTab: React.FC = () => {
           <ReaderThemeSelector
             label={getString('readerSettings.preset')}
             labelStyle={labelStyle}
+            showCustom={false}
           />
         </View>
 

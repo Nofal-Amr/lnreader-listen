@@ -146,6 +146,13 @@ internal object OnlineVoice {
         }
     }
 
+    /** How far through the current clip playback is (0..1), or null when nothing plays. */
+    fun playedFraction(): Double? = player?.let {
+        runCatching {
+            if (it.duration > 0) it.currentPosition.toDouble() / it.duration else null
+        }.getOrNull()
+    }
+
     fun stop() {
         activeId = null
         player?.let {

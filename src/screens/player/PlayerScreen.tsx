@@ -15,6 +15,9 @@ import { Dialog, Slider } from '@components';
 import { useChapterReaderSettings, useTheme } from '@hooks/persisted';
 import type { MaterialDesignIconName } from '@type/icon';
 import { fixTitle } from '@services/listen/cleaner/fixTitle';
+import { getNovelById } from '@database/queries/NovelQueries';
+import { getChapter } from '@database/queries/ChapterQueries';
+import { showToast } from '@utils/showToast';
 import {
   applyPlayerSettings,
   playAdjacentChapter,
@@ -58,7 +61,11 @@ const Control = ({
  * clause/sentence skipping, speed, favourite voices, sleep timer and a
  * follow-along view of the chapter text.
  */
-const PlayerScreen = ({ navigation }: { navigation: { goBack(): void } }) => {
+const PlayerScreen = ({
+  navigation,
+}: {
+  navigation: { goBack(): void; navigate(...args: any[]): void };
+}) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { tts, setChapterReaderSettings } = useChapterReaderSettings();
@@ -94,6 +101,24 @@ const PlayerScreen = ({ navigation }: { navigation: { goBack(): void } }) => {
     },
     [setChapterReaderSettings, tts],
   );
+
+  // Back to the chapter being read, in the reader (playback keeps going).
+  const openChapter = async () => {
+    const current = usePlayerStore.getState();
+    const dbNovel = current.novel ? getNovelById(current.novel.id) : undefined;
+    const dbChapter = current.chapter
+      ? await getChapter(current.chapter.id)
+      : undefined;
+    if (!dbNovel || !dbChapter) {
+      showToast('This chapter is no longer in the library.');
+      return;
+    }
+    navigation.goBack();
+    navigation.navigate('ReaderStack', {
+      screen: 'Chapter',
+      params: { novel: dbNovel, chapter: dbChapter },
+    });
+  };
 
   const cycleSpeed = () => {
     const rate = tts?.rate ?? 1;
@@ -261,6 +286,15 @@ const PlayerScreen = ({ navigation }: { navigation: { goBack(): void } }) => {
       </View>
 
       <View style={styles.chips}>
+        {novel.id > 0 ? (
+          <Chip
+            icon="book-open-variant"
+            onPress={() => void openChapter()}
+            style={styles.chip}
+          >
+            Open chapter
+          </Chip>
+        ) : null}
         <Chip icon="speedometer" onPress={cycleSpeed} style={styles.chip}>
           {`${(tts?.rate ?? 1).toFixed(1)}×`}
         </Chip>
