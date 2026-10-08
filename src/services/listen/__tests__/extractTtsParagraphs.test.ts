@@ -34,3 +34,13 @@ describe('extractTtsParagraphs', () => {
     expect(extractTtsParagraphs('<p>One<br>two</p>')).toEqual(['One two']);
   });
 });
+
+describe('normalizeTtsText numbers', () => {
+  it('keeps thousands separators, decimals and times whole', () => {
+    const { normalizeTtsText } = jest.requireActual('../extractTtsParagraphs');
+    expect(
+      normalizeTtsText('He paid 30,000 gold at 10:30, then 3.5 more.'),
+    ).toBe('He paid 30,000 gold at 10:30, then 3.5 more.');
+    expect(normalizeTtsText('One.Two ,three')).toBe('One. Two, three');
+  });
+});

@@ -57,6 +57,24 @@ export const getSpeechTransform = (): ((text: string) => SpokenParagraph) => {
   return cachedTransform;
 };
 
+// Abbreviations whose full stop the engine needs ("Mr." is read "Mister").
+const ABBREVIATION =
+  /(?:^|[\s("'“‘])(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Gen|Capt|Lt|Col|Sgt|vs|etc|No|Vol|Ch|e\.g|i\.e)$/i;
+
+/**
+ * Engines pause after every full stop on their own, even with the sentence
+ * pause at 0 s. A semicolon gets a shorter stop with a similar falling tone,
+ * so mid-paragraph full stops are swapped for one ("?" and "!" are kept).
+ */
+export const shortenFullStops = (text: string): string =>
+  text.replace(
+    /(?<![.\d])\.(?![.\d])(?=["'”’)\]]*\s+\S)/g,
+    (stop, offset: number, all: string) =>
+      ABBREVIATION.test(all.slice(Math.max(0, offset - 6), offset))
+        ? stop
+        : ';',
+  );
+
 /**
  * Reader paragraphs → native TTS paragraphs: speaking rules applied, clause
  * breaks computed. Indices are preserved (blank entries stay) so the reader
@@ -64,11 +82,13 @@ export const getSpeechTransform = (): ((text: string) => SpokenParagraph) => {
  */
 export const toTtsParagraphs = (texts: string[]): TtsParagraph[] => {
   const speak = getSpeechTransform();
+  const shortStops = readTts()?.shortFullStops === true;
   return dropRepeats(texts).map((raw, index) => {
     const { text, pauseMs } = speak(raw);
     return {
       id: String(index),
-      text,
+      // Same length, so the breaks (found on the real text) still line up.
+      text: shortStops ? shortenFullStops(text) : text,
       breaks: computeBreaks(text),
       ...(pauseMs ? { pauseMs } : {}),
     };

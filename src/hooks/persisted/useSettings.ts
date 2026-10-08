@@ -250,6 +250,8 @@ export interface ChapterReaderSettings {
     rewindUnit?: TtsSkipUnit;
     forwardUnit?: TtsSkipUnit;
     mixWithOthers?: boolean;
+    /** Swap mid-paragraph full stops for a shorter stop (see shortenFullStops). */
+    shortFullStops?: boolean;
     /** Show the novel cover in the playback notification (default on). */
     notificationCover?: boolean;
     autoPauseMinutes?: number;

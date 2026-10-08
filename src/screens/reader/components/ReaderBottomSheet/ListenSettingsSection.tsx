@@ -265,6 +265,15 @@ const ListenSettingsSection: React.FC<Props> = ({
           onChange={v => update({ pauseSentenceMs: v })}
           theme={theme}
         />
+        <ReaderSheetPreferenceItem
+          label="Shorter stop at full stops"
+          description="Even at 0 s the voice stops briefly after every sentence on its own. On: full stops get a shorter, comma-like stop. Questions and exclamations keep their tone."
+          value={current.shortFullStops === true}
+          onPress={() =>
+            update({ shortFullStops: !(current.shortFullStops === true) })
+          }
+          theme={theme}
+        />
         <PauseSlider
           label="Between paragraphs"
           value={current.pauseParagraphMs ?? TTS_DEFAULTS.pauseParagraphMs}

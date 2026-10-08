@@ -215,7 +215,15 @@ window.tts = new (function () {
       .replace(/\s+/g, ' ')
       .trim()
       .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
-      .replace(/\s*([.,!?;:])\s*/g, '$1 ')
+      .replace(/\s*([.,!?;:])\s*/g, (match, mark, offset, all) =>
+        // Keep numbers whole: "30,000", "3.5", "10:30" (no space added).
+        // Must match normalizeTtsText in extractTtsParagraphs.ts.
+        match === mark &&
+        /\d/.test(all[offset - 1] ?? '') &&
+        /\d/.test(all[offset + 1] ?? '')
+          ? mark
+          : `${mark} `,
+      )
       .trim();
 
     const dashOnlyText = normalized.replace(/\s/g, '');

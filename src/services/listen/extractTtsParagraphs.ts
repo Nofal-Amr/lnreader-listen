@@ -43,7 +43,14 @@ export const normalizeTtsText = (text: string): string => {
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
-    .replace(/\s*([.,!?;:])\s*/g, '$1 ')
+    .replace(/\s*([.,!?;:])\s*/g, (match, mark: string, offset, all) =>
+      // Keep numbers whole: "30,000", "3.5", "10:30" (no space added).
+      match === mark &&
+      /\d/.test(all[offset - 1] ?? '') &&
+      /\d/.test(all[offset + 1] ?? '')
+        ? mark
+        : `${mark} `,
+    )
     .trim();
   const compact = normalized.replace(/\s/g, '');
   if (compact.length >= 3 && DASH_ONLY.test(compact)) {
