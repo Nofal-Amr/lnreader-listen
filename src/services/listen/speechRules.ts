@@ -1,6 +1,9 @@
 /** One "Remove …" / "Replace … with …" rule, like T2S's Speaking text process. */
 export interface SpeechRule {
   id: string;
+  /** Optional label for a bundle of phrases ("Site watermarks"). */
+  name?: string;
+  /** One phrase per line; every line gets the same replacement. */
   find: string;
   /** Empty string removes the match. */
   replace: string;
@@ -148,21 +151,66 @@ const EMOJI_RE = new RegExp(
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const IS_WORD = /[A-Za-z0-9_]/;
 
+/** The phrases of a rule: one per line, blank lines ignored. */
+export const rulePhrases = (rule: SpeechRule): string[] =>
+  rule.find
+    .split(/\r?\n/)
+    .map(line => (rule.regex ? line : line.trim()))
+    .filter(line => line.trim().length > 0);
+
+const phraseSource = (find: string, wholeWord?: boolean) => {
+  let src = find.split(/\s+/).map(escapeRe).join('\\s+');
+  if (wholeWord) {
+    if (IS_WORD.test(find[0])) src = `(?<![A-Za-z0-9_])${src}`;
+    if (IS_WORD.test(find[find.length - 1])) src = `${src}(?![A-Za-z0-9_])`;
+  }
+  return src;
+};
+
 export const ruleRegex = (rule: SpeechRule): RegExp | null => {
   const flags = rule.matchCase ? 'g' : 'gi';
+  const phrases = rulePhrases(rule);
+  if (!phrases.length) return null;
   try {
-    if (rule.regex) return new RegExp(rule.find, flags);
-    const find = rule.find.trim();
-    if (!find) return null;
-    let src = find.split(/\s+/).map(escapeRe).join('\\s+');
-    if (rule.wholeWord) {
-      if (IS_WORD.test(find[0])) src = `(?<![A-Za-z0-9_])${src}`;
-      if (IS_WORD.test(find[find.length - 1])) src = `${src}(?![A-Za-z0-9_])`;
+    // A single phrase keeps its own groups ($1 in the replacement still works).
+    if (rule.regex && phrases.length === 1) {
+      return new RegExp(phrases[0], flags);
     }
-    return new RegExp(src, flags);
+    const sources = rule.regex
+      ? phrases.map(p => `(?:${p})`)
+      : phrases.map(p => phraseSource(p, rule.wholeWord));
+    return new RegExp(sources.join('|'), flags);
   } catch {
     return null;
   }
+};
+
+const sameKind = (a: SpeechRule, b: SpeechRule) =>
+  a.replace === b.replace &&
+  !!a.regex === !!b.regex &&
+  !!a.matchCase === !!b.matchCase &&
+  !!a.wholeWord === !!b.wholeWord &&
+  (a.enabled !== false) === (b.enabled !== false) &&
+  !!a.onPage === !!b.onPage;
+
+/**
+ * Bundles rules that do the same thing (same replacement and switches) into
+ * one rule with a phrase per line, keeping the order of first appearance.
+ */
+export const combineSimilarRules = (rules: SpeechRule[]): SpeechRule[] => {
+  const out: SpeechRule[] = [];
+  for (const rule of rules) {
+    const target = out.find(r => sameKind(r, rule));
+    if (!target) {
+      out.push({ ...rule });
+      continue;
+    }
+    const existing = rulePhrases(target);
+    const added = rulePhrases(rule).filter(p => !existing.includes(p));
+    target.find = [...existing, ...added].join('\n');
+    if (!target.name && rule.name) target.name = rule.name;
+  }
+  return out;
 };
 
 /** Compiles the settings once into a paragraph → spoken-paragraph function. */

@@ -8,7 +8,9 @@ import type { ChapterReaderSettings } from '@hooks/persisted/useSettings';
 import type { ThemeColors } from '@theme/types';
 import type { Sensitivity } from '@services/listen/cleaner/patterns';
 import {
+  combineSimilarRules,
   DEFAULT_SPEECH_RULE_SETTINGS,
+  rulePhrases,
   SECTION_BREAK_PAUSE_MS,
   type EmojiMode,
   type SectionBreakMode,
@@ -85,10 +87,19 @@ const ChoiceRow = <T extends string>({
   </View>
 );
 
-const describeRule = (rule: SpeechRule) =>
-  rule.replace
-    ? `Replace "${rule.find}" with "${rule.replace}"`
-    : `Remove "${rule.find}"`;
+const describeRule = (rule: SpeechRule) => {
+  const phrases = rulePhrases(rule);
+  const what =
+    phrases.length > 1
+      ? `"${phrases[0]}" + ${phrases.length - 1} more`
+      : `"${phrases[0] ?? ''}"`;
+  const action = rule.replace
+    ? `Replace ${what} with "${rule.replace}"`
+    : `Remove ${what}`;
+  return rule.name ? `${rule.name}: ${action}` : action;
+};
+
+const RULE_SEARCH_FROM = 6;
 
 const RuleEditor = ({
   rule,
@@ -117,10 +128,18 @@ const RuleEditor = ({
       <Dialog.Title>{rule?.id ? 'Edit rule' : 'New rule'}</Dialog.Title>
       <Dialog.Content>
         <TextInput
-          label="Find"
+          label="Name (optional)"
           mode="outlined"
+          value={draft.name ?? ''}
+          onChangeText={name => setDraft(d => ({ ...d, name }))}
+        />
+        <TextInput
+          label="Find (one phrase per line)"
+          mode="outlined"
+          multiline
           value={draft.find}
           onChangeText={find => setDraft(d => ({ ...d, find }))}
+          style={[styles.input, styles.findInput]}
         />
         <TextInput
           label="Replace with (empty = remove)"
@@ -192,6 +211,16 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
     [current.speech],
   );
   const [editing, setEditing] = useState<SpeechRule | null>(null);
+  const [query, setQuery] = useState('');
+  const shownRules = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return speech.rules;
+    return speech.rules.filter(rule =>
+      [rule.name ?? '', rule.find, rule.replace].some(text =>
+        text.toLowerCase().includes(q),
+      ),
+    );
+  }, [query, speech.rules]);
 
   const setSpeech = useCallback(
     (patch: Partial<SpeechRuleSettings>) =>
@@ -217,6 +246,19 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
     }
     setSpeech({ rules: [...speech.rules, ...parsed] });
     showToast(`Added ${parsed.length} rule(s)`);
+  };
+
+  const combineRules = () => {
+    const combined = combineSimilarRules(speech.rules);
+    const merged = speech.rules.length - combined.length;
+    if (!merged) {
+      showToast(
+        'No rules to combine (they differ in replacement or switches).',
+      );
+      return;
+    }
+    setSpeech({ rules: combined });
+    showToast(`Combined into ${combined.length} rule(s)`);
   };
 
   const exportAll = async () => {
@@ -351,7 +393,32 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
   const rulesPart = (
     <>
       <List.SubHeader theme={theme}>Custom rules</List.SubHeader>
-      {speech.rules.map(rule => (
+      <List.Item
+        title="Add rule"
+        description="Several phrases can share one rule: one per line."
+        onPress={() => setEditing({ ...EMPTY_RULE })}
+        right="plus"
+        theme={theme}
+      />
+      <List.Item
+        title="Import rules from clipboard"
+        description='One per line, e.g. Remove "…" or Replace "…" to "…"'
+        onPress={importRules}
+        right="content-paste"
+        theme={theme}
+      />
+      {speech.rules.length >= RULE_SEARCH_FROM ? (
+        <View style={styles.chipSection}>
+          <TextInput
+            mode="outlined"
+            dense
+            label={`Search ${speech.rules.length} rules`}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+      ) : null}
+      {shownRules.map(rule => (
         <List.Item
           key={rule.id}
           title={describeRule(rule)}
@@ -367,19 +434,15 @@ const SpeechRulesSection: React.FC<Props> = ({ part, tts, setTts, theme }) => {
           theme={theme}
         />
       ))}
-      <List.Item
-        title="Add rule"
-        onPress={() => setEditing({ ...EMPTY_RULE })}
-        right="plus"
-        theme={theme}
-      />
-      <List.Item
-        title="Import rules from clipboard"
-        description='One per line, e.g. Remove "…" or Replace "…" to "…"'
-        onPress={importRules}
-        right="content-paste"
-        theme={theme}
-      />
+      {speech.rules.length > 1 ? (
+        <List.Item
+          title="Combine similar rules"
+          description="Rules with the same replacement and switches become one."
+          onPress={combineRules}
+          right="call-merge"
+          theme={theme}
+        />
+      ) : null}
       <List.Item
         title="Copy rules to clipboard"
         onPress={exportAll}
@@ -409,6 +472,7 @@ export default React.memo(SpeechRulesSection);
 
 const styles = StyleSheet.create({
   input: { marginTop: 8 },
+  findInput: { maxHeight: 180 },
   chipSection: { paddingHorizontal: 16, paddingVertical: 8 },
   chipLabel: { fontSize: 13, marginBottom: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap' },

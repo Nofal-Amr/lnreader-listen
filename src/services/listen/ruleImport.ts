@@ -28,6 +28,7 @@ export const parseRules = (input: string): SpeechRule[] => {
         .filter(r => typeof r.find === 'string' && r.find.length > 0)
         .map(r => ({
           id: newId(),
+          ...(typeof r.name === 'string' && r.name ? { name: r.name } : {}),
           find: r.find as string,
           replace: typeof r.replace === 'string' ? r.replace : '',
           regex: !!r.regex,

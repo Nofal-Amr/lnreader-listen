@@ -50,6 +50,8 @@ internal object TtsPlaybackStore {
     private const val ONLINE_RETRY_AFTER_MS = 2 * 60_000L
     private var state = TtsPlaybackState.IDLE
     private var generation = 0L
+    private var engineRetries = 0
+    private const val MAX_ENGINE_RETRIES = 2
 
     // Position inside the current paragraph: the active utterance covers
     // [charStart, utteranceEnd); spokenPos follows onRangeStart word by word.
@@ -542,6 +544,16 @@ internal object TtsPlaybackStore {
 
     /** Speaks from [charStart] to the next active break of the current paragraph. */
     private fun speakCurrent() {
+        if (engine != null && !isReady && localEngineName() == boundEngineName) {
+            // Still starting up (being rebound): speak once it is ready.
+            pendingInitialization.add { result ->
+                result.fold(
+                    onSuccess = { speakCurrent() },
+                    onFailure = { fail("The selected text-to-speech engine failed to initialize.") },
+                )
+            }
+            return
+        }
         if (engine == null || localEngineName() != boundEngineName) {
             pendingInitialization.add { result ->
                 result.fold(
@@ -603,7 +615,7 @@ internal object TtsPlaybackStore {
         val spoken = text.replace(OnlineVoice.SHOUT_OPEN, " ").replace(OnlineVoice.SHOUT_CLOSE, " ")
         val result = activeEngine.speak(spoken, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
         if (result == TextToSpeech.ERROR) {
-            fail("The text-to-speech engine rejected the current paragraph.")
+            recoverEngine("The text-to-speech engine rejected the current paragraph.")
         }
     }
 
@@ -858,8 +870,34 @@ internal object TtsPlaybackStore {
         callbacks.forEach { it(result) }
     }
 
+    // Only needs initialize() to have run: a dead or still-starting engine is
+    // rebound by speakCurrent() instead of refusing the request.
     private fun requireReady() {
-        check(isReady) { "The text-to-speech engine is not ready." }
+        check(applicationContext != null) { "The text-to-speech engine is not ready." }
+    }
+
+    /**
+     * Android may kill the voice engine's process (often during a pause), and
+     * every speak() then fails until it is rebound. Rebind and retry a couple
+     * of times before reporting an error.
+     */
+    private fun recoverEngine(message: String) {
+        if (engineRetries >= MAX_ENGINE_RETRIES) {
+            engineRetries = 0
+            fail(message)
+            return
+        }
+        engineRetries += 1
+        generation += 1
+        state = TtsPlaybackState.LOADING
+        emitState()
+        pendingInitialization.add { result ->
+            result.fold(
+                onSuccess = { if (state == TtsPlaybackState.LOADING) speakCurrent() },
+                onFailure = { fail(message) },
+            )
+        }
+        bindEngine(localEngineName())
     }
 
     private fun runOnOwner(operation: () -> Unit) {
@@ -874,6 +912,7 @@ internal object TtsPlaybackStore {
         override fun onStart(utteranceId: String) {
             runOnOwner {
                 if (utteranceId == currentUtteranceId) {
+                    engineRetries = 0
                     state = TtsPlaybackState.PLAYING
                     emitState()
                 }
@@ -896,7 +935,7 @@ internal object TtsPlaybackStore {
         override fun onError(utteranceId: String) {
             runOnOwner {
                 if (utteranceId == currentUtteranceId) {
-                    fail("The text-to-speech engine failed while speaking.")
+                    recoverEngine("The text-to-speech engine failed while speaking.")
                 }
             }
         }
@@ -904,7 +943,7 @@ internal object TtsPlaybackStore {
         override fun onError(utteranceId: String, errorCode: Int) {
             runOnOwner {
                 if (utteranceId == currentUtteranceId) {
-                    fail("The text-to-speech engine failed with error code $errorCode.")
+                    recoverEngine("The text-to-speech engine failed with error code $errorCode.")
                 }
             }
         }
