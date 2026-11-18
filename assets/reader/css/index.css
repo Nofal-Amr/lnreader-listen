@@ -77,6 +77,10 @@ a {
   color: var(--theme-primary);
 }
 
+a:target {
+  scroll-margin-top: 64vh;
+}
+
 sup {
   line-height: 0.1em;
 }
@@ -201,11 +205,7 @@ td {
 mark.lnreader-search-match {
   border-radius: 2px;
   color: inherit;
-  background-color: color-mix(
-    in srgb,
-    var(--theme-tertiary) 55%,
-    transparent
-  );
+  background-color: color-mix(in srgb, var(--theme-tertiary) 55%, transparent);
 }
 
 mark.lnreader-search-match-active {
