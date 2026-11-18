@@ -28,6 +28,7 @@ internal class TtsMediaNotification(
     private val manager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val mediaSession = MediaSessionCompat(context, "LNReaderTTS")
+    val sessionToken: MediaSessionCompat.Token get() = mediaSession.sessionToken
 
     init {
         ensureChannel()
@@ -146,7 +147,9 @@ internal class TtsMediaNotification(
             // while the app is open; show the controls straight away.
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setOnlyAlertOnce(true)
-            .setOngoing(isPlaying)
+            // Stays while paused too, so a pause from the headphones can be
+            // resumed later from here (Stop closes it).
+            .setOngoing(snapshot.state != TtsPlaybackState.COMPLETED && snapshot.state != TtsPlaybackState.IDLE)
             .addAction(
                 action(
                     android.R.drawable.ic_media_previous,
@@ -167,6 +170,13 @@ internal class TtsMediaNotification(
                     android.R.drawable.ic_lock_idle_alarm,
                     TtsPlaybackStore.sleepLabel() ?: "Sleep timer",
                     TtsPlaybackService.ACTION_SLEEP,
+                ),
+            )
+            .addAction(
+                action(
+                    android.R.drawable.ic_menu_close_clear_cancel,
+                    "Stop",
+                    TtsPlaybackService.ACTION_STOP,
                 ),
             )
             .setStyle(
@@ -262,7 +272,9 @@ internal class TtsMediaNotification(
     }
 
     private fun serviceIntent(action: String): PendingIntent {
-        val intent = Intent(context, TtsPlaybackService::class.java).setAction(action)
+        val intent = Intent(context, TtsPlaybackService::class.java)
+            .setAction(action)
+            .putExtra(TtsPlaybackService.EXTRA_KEY, TtsPlaybackService.commandKey)
         return PendingIntent.getService(
             context,
             action.hashCode(),

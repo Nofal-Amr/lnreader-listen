@@ -533,6 +533,9 @@ internal object TtsPlaybackStore {
         return snapshotListeners.add(listener)
     }
 
+    /** True while a chapter is loaded (playing or paused). */
+    fun hasQueue(): Boolean = paragraphs.isNotEmpty()
+
     fun snapshot(): TtsPlaybackSnapshot {
         return TtsPlaybackSnapshot(state, metadata, currentProgress())
     }

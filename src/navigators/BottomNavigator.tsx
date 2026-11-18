@@ -19,7 +19,10 @@ import { MaterialDesignIconName } from '@type/icon';
 import { BottomTabBar } from '@components';
 import MiniPlayer from '@screens/player/MiniPlayer';
 import BrowserScreen from '@screens/browser/BrowserScreen';
-import { useBrowserStore } from '@services/browser/browserStore';
+import {
+  useBrowserChrome,
+  useBrowserStore,
+} from '@services/browser/browserStore';
 
 const Tab = createBottomTabNavigator<BottomNavigatorParamList>();
 
@@ -28,6 +31,9 @@ const BottomNavigator = () => {
   // Full-screen browsing hides the tab bar for as long as the Browser is shown
   // (toggling it with the toolbar would resize the page and make it flicker).
   const browserImmersive = useBrowserStore(s => s.prefs.fullscreen);
+  // The bars come back together with the browser toolbar (scroll up or tap
+  // the top edge), so the other tabs stay reachable.
+  const browserChromeHidden = useBrowserChrome(s => s.hidden);
 
   const {
     showHistoryTab = true,
@@ -74,8 +80,9 @@ const BottomNavigator = () => {
 
   const renderTabBar = useCallback(
     (props: any) =>
-      // Full-screen browsing hides every bar (OLED friendly).
+      // Full-screen browsing hides every bar while reading (OLED friendly).
       browserImmersive &&
+      browserChromeHidden &&
       props.state?.routes?.[props.state.index]?.name === 'Browser' ? null : (
         <>
           <MiniPlayer />
@@ -87,7 +94,7 @@ const BottomNavigator = () => {
           />
         </>
       ),
-    [theme, showLabelsInNav, renderIcon, browserImmersive],
+    [theme, showLabelsInNav, renderIcon, browserImmersive, browserChromeHidden],
   );
 
   return (

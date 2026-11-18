@@ -12,8 +12,13 @@
   <application>
     <service
       android:name=".TtsPlaybackService"
-      android:exported="false"
+      android:exported="true"
       android:foregroundServiceType="mediaPlayback"
-      android:stopWithTask="false" />
+      android:stopWithTask="false">
+      <!-- Media resumption: the paused player stays as a resume card. -->
+      <intent-filter>
+        <action android:name="android.media.browse.MediaBrowserService" />
+      </intent-filter>
+    </service>
   </application>
 </manifest>

@@ -16,8 +16,8 @@ internal class TtsMediaSessionCallback : MediaSessionCompat.Callback() {
     private val resolvePresses = Runnable {
         when (presses) {
             1 -> togglePlayPause()
-            2 -> TtsPlaybackStore.skipNext()
-            else -> TtsPlaybackStore.skipPrevious()
+            2 -> safely { TtsPlaybackStore.skipNext() }
+            else -> safely { TtsPlaybackStore.skipPrevious() }
         }
         presses = 0
     }
@@ -44,40 +44,46 @@ internal class TtsMediaSessionCallback : MediaSessionCompat.Callback() {
 
     private fun togglePlayPause() {
         if (TtsPlaybackStore.snapshot().state == TtsPlaybackState.PLAYING) {
-            TtsPlaybackStore.pause()
+            safely { TtsPlaybackStore.pause() }
         } else {
-            TtsPlaybackStore.play()
+            safely { TtsPlaybackStore.play() }
         }
     }
 
     override fun onPlay() {
-        TtsPlaybackStore.play()
+        safely { TtsPlaybackStore.play() }
     }
 
     override fun onPause() {
-        TtsPlaybackStore.pause()
+        safely { TtsPlaybackStore.pause() }
     }
 
     override fun onStop() {
-        TtsPlaybackStore.stop()
+        safely { TtsPlaybackStore.stop() }
     }
 
     // Separate previous/next buttons (Bluetooth, watches, car, notification)
     // move by the configured rewind/forward unit.
     override fun onSkipToPrevious() {
-        TtsPlaybackStore.skipPrevious()
+        safely { TtsPlaybackStore.skipPrevious() }
     }
 
     override fun onSkipToNext() {
-        TtsPlaybackStore.skipNext()
+        safely { TtsPlaybackStore.skipNext() }
     }
 
     override fun onRewind() {
-        TtsPlaybackStore.skipPrevious()
+        safely { TtsPlaybackStore.skipPrevious() }
     }
 
     override fun onFastForward() {
-        TtsPlaybackStore.skipNext()
+        safely { TtsPlaybackStore.skipNext() }
+    }
+
+    // A command with nothing loaded (or the engine not ready) must not
+    // crash the app from a headset or the lock screen.
+    private inline fun safely(block: () -> Unit) {
+        runCatching(block)
     }
 
     private companion object {
