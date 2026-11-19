@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.support.v4.media.session.MediaSessionCompat
 import android.view.KeyEvent
 
@@ -30,6 +31,20 @@ internal class TtsMediaSessionCallback : MediaSessionCompat.Callback() {
             mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
         } ?: return super.onMediaButtonEvent(mediaButtonEvent)
 
+        // While paused, the silent keep-alive track still streams to the
+        // earbuds, so many of them think audio is playing and send Pause
+        // again instead of Play. A Pause press while already paused resumes.
+        if (event.keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                if (isPlaying()) {
+                    pauseNow()
+                } else if (SystemClock.elapsedRealtime() - lastPauseAt > REPEAT_GUARD_MS) {
+                    safely { TtsPlaybackStore.play() }
+                }
+            }
+            return true
+        }
+
         val singleButton = event.keyCode == KeyEvent.KEYCODE_HEADSETHOOK ||
             event.keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
         if (!singleButton) return super.onMediaButtonEvent(mediaButtonEvent)
@@ -42,9 +57,21 @@ internal class TtsMediaSessionCallback : MediaSessionCompat.Callback() {
         return true
     }
 
+    private var lastPauseAt = 0L
+
+    private fun isPlaying(): Boolean {
+        val state = TtsPlaybackStore.snapshot().state
+        return state == TtsPlaybackState.PLAYING || state == TtsPlaybackState.LOADING
+    }
+
+    private fun pauseNow() {
+        lastPauseAt = SystemClock.elapsedRealtime()
+        safely { TtsPlaybackStore.pause() }
+    }
+
     private fun togglePlayPause() {
-        if (TtsPlaybackStore.snapshot().state == TtsPlaybackState.PLAYING) {
-            safely { TtsPlaybackStore.pause() }
+        if (isPlaying()) {
+            pauseNow()
         } else {
             safely { TtsPlaybackStore.play() }
         }
@@ -54,8 +81,14 @@ internal class TtsMediaSessionCallback : MediaSessionCompat.Callback() {
         safely { TtsPlaybackStore.play() }
     }
 
+    // Some Bluetooth stacks send the earbud press here instead of as a key
+    // event; same rule: Pause while already paused resumes.
     override fun onPause() {
-        safely { TtsPlaybackStore.pause() }
+        when {
+            isPlaying() -> pauseNow()
+            SystemClock.elapsedRealtime() - lastPauseAt > REPEAT_GUARD_MS ->
+                safely { TtsPlaybackStore.play() }
+        }
     }
 
     override fun onStop() {
@@ -88,5 +121,7 @@ internal class TtsMediaSessionCallback : MediaSessionCompat.Callback() {
 
     private companion object {
         const val MULTI_PRESS_WINDOW_MS = 450L
+        // Ignore a second Pause that arrives right after the first one.
+        const val REPEAT_GUARD_MS = 1_500L
     }
 }
